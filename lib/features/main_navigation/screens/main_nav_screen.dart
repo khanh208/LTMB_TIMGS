@@ -28,9 +28,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       _screens = const [
         HomeScreen(), 
         
-        // !!! 1. THAY THẾ TAB THỨ 2 !!!
-        MyCoursesScreenPlaceholder(), // Thay vì WishlistScreenPlaceholder()
-        
+        MyCoursesScreenPlaceholder(),
         ChatScreenPlaceholder(),
         MyProfileScreen(),
       ];
