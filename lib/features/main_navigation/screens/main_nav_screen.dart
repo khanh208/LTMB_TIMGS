@@ -1,7 +1,6 @@
 // lib/features/main_navigation/screens/main_nav_screen.dart
 
 import 'package:flutter/material.dart';
-// Import các màn hình giả lập
 import '../../placeholder_screens.dart'; 
 import '../../search_find_tutor/screens/home_screen.dart'; 
 import '../../profile/screens/my_profile_screen.dart';
@@ -15,7 +14,7 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
-  final String _userRole = 'student'; // Giữ giả lập
+  final String _userRole = 'student'; 
 
   late List<Widget> _screens;
   late List<BottomNavigationBarItem> _navItems;
@@ -95,7 +94,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     }
   }
 
-  // (Phần còn lại của file giữ nguyên)
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
