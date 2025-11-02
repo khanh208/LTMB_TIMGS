@@ -1,9 +1,5 @@
-// lib/app.dart
-// (File bạn đã tạo, giờ cập nhật lại)
-
 import 'package:flutter/material.dart';
 import 'features/main_navigation/screens/main_nav_screen.dart';
-// Import 2 file mới của chúng ta
 import 'features/profile/screens/settings_screen.dart'; 
 import 'features/authentication/screens/onboarding_screen.dart';
 import 'features/authentication/screens/login_screen.dart';
