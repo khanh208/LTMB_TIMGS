@@ -1,9 +1,14 @@
+// lib/app.dart
+
 import 'package:flutter/material.dart';
 import 'features/main_navigation/screens/main_nav_screen.dart';
 import 'features/profile/screens/settings_screen.dart'; 
 import 'features/authentication/screens/onboarding_screen.dart';
 import 'features/authentication/screens/login_screen.dart';
 
+// --- 1. IMPORT FILE ĐĂNG KÝ MỚI ---
+import 'features/authentication/screens/register_screen.dart';
+  
 class App extends StatelessWidget {
   const App({super.key});
 
@@ -34,14 +39,17 @@ class App extends StatelessWidget {
 
       // --- CẬP NHẬT ĐƯỜNG DẪN ---
       
-      // 1. Đổi 'home' thành OnboardingScreen
+      // 1. Giữ 'home' là OnboardingScreen
       home: const OnboardingScreen(), 
 
       // 2. Định nghĩa các đường dẫn
       routes: {
         '/main': (context) => const MainNavigationScreen(),
-        '/login': (context) => const LoginScreen(), // Thêm đường dẫn login
-        // '/register': (context) => const RegisterScreen(),
+        '/login': (context) => const LoginScreen(), 
+        
+        // --- 2. THÊM ROUTE CHO ĐĂNG KÝ ---
+        '/register': (context) => const RegisterScreen(),
+
         '/settings': (context) => const SettingsScreen(),
       },
     );
