@@ -2,7 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'search_screen.dart'; // Import màn hình search
-
+import '../../profile/screens/tutor_profile_detail_screen.dart';
+      
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -204,7 +205,17 @@ class _TutorCardMini extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return InkWell( // 1. BỌC BẰNG INKWELL
+      onTap: () {
+        // 2. THÊM HÀNH ĐỘNG ONTAP
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TutorProfileDetailScreen(tutorId: 'id_gia_su_${index + 1}'), // (Truyền ID)
+          ),
+        );
+      },  
+      child: Container(
       width: 180, 
       decoration: BoxDecoration(
         color: Colors.white,
@@ -267,6 +278,7 @@ class _TutorCardMini extends StatelessWidget {
           ),
         ],
       ),
+    )
     );
   }
 }

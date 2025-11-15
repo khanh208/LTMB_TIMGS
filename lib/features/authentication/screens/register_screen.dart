@@ -1,7 +1,8 @@
 // lib/features/authentication/screens/register_screen.dart
 
 import 'package:flutter/material.dart';
-  import '../widgets/role_selection_screen.dart'; // Import widget chọn vai trò
+  import '../../../core/services/api_service.dart';
+import '../widgets/role_selection_screen.dart'; // Import widget chọn vai trò
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -11,7 +12,9 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  // State cho Bước 1: Chọn vai trò
+  final ApiService _apiService = ApiService();
+  bool _isLoading = false;
+  
   String? _selectedRole; // 'student' hoặc 'tutor'
   bool _showRoleSelection = true; // Bắt đầu bằng việc chọn vai trò
 
@@ -32,15 +35,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   // --- Hàm xử lý Đăng ký ---
-  void _register() {
+  void _register() async {
     if (_formKey.currentState!.validate()) {
-      // (Xử lý logic đăng ký với Firebase Auth và Firestore tại đây)
-      print("Đăng ký vai trò: $_selectedRole");
-      print("Tên: ${_nameController.text}");
-      print("Email: ${_emailController.text}");
+      setState(() {
+        _isLoading = true; // Bật vòng xoay loading
+      });
 
-      // Giả lập đăng ký thành công và quay về Login
-      Navigator.pushReplacementNamed(context, '/login'); 
+      try {
+        // Gọi API
+        final result = await _apiService.register(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+          _nameController.text.trim(),
+          _selectedRole!,
+        );
+
+        // Đăng ký thành công
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Đăng ký thành công!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pushReplacementNamed(context, '/login'); // Quay về login
+
+      } catch (e) {
+        // Đăng ký thất bại
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString().replaceAll("Exception: ", "")}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        setState(() {
+          _isLoading = false; // Tắt vòng xoay loading
+        });
+      }
     }
   }
 
@@ -196,13 +227,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: _register,
+              // Nếu đang loading thì disable nút
+              onPressed: _isLoading ? null : _register,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).primaryColor,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text("Đăng ký", style: TextStyle(fontSize: 18)),
+              child: _isLoading 
+                  ? const CircularProgressIndicator(color: Colors.white) // Vòng xoay
+                  : const Text("Đăng ký", style: TextStyle(fontSize: 18)),
             ),
           ),
           const SizedBox(height: 20),

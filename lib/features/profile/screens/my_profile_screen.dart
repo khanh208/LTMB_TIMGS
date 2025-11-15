@@ -43,13 +43,17 @@ class MyProfileScreen extends StatelessWidget {
             leading: const Icon(Icons.favorite_border),
             title: const Text("Gia sư đã lưu"),
             trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-            onTap: () { /* Điều hướng */ },
+            onTap: () { 
+              Navigator.pushNamed(context, '/saved_tutors');  
+             },
           ),
           ListTile(
             leading: const Icon(Icons.account_balance_wallet_outlined),
             title: const Text("Ví của tôi"),
             trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-            onTap: () { /* Điều hướng */ },
+            onTap: () { 
+              Navigator.pushNamed(context, '/wallet');  
+             },
           ),
         ],
       );
@@ -61,13 +65,17 @@ class MyProfileScreen extends StatelessWidget {
             leading: const Icon(Icons.dashboard_outlined),
             title: const Text("Dashboard (Quản lý)"),
             trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-            onTap: () { /* Điều hướng */ },
+            onTap: () { 
+              Navigator.pushNamed(context, '/tutor_dashboard');
+            },
           ),
           ListTile(
             leading: const Icon(Icons.attach_money_outlined),
             title: const Text("Quản lý Thu nhập"),
             trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-            onTap: () { /* Điều hướng */ },
+            onTap: () { 
+              Navigator.pushNamed(context, '/earnings_management');
+             },
           ),
         ],
       );

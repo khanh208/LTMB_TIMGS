@@ -7,7 +7,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // (Sau này lấy vai trò từ state)
-    const String userRole = 'student'; 
+    const String _userRole = 'student'; // 'student' hoặc 'tutor'
 
     return Scaffold(
       appBar: AppBar(
@@ -22,21 +22,20 @@ class SettingsScreen extends StatelessWidget {
               subtitle: const Text("Tên, SĐT, Ảnh đại diện"),
               trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
               onTap: () {
-                // (Điều hướng đến màn hình EditAccountInfoScreen - sẽ tạo sau)
-                // Navigator.pushNamed(context, '/edit_account');
+                Navigator.pushNamed(context, '/edit_account');
               },
             ),
             
             // Chỉ Gia sư mới thấy mục này
-            if (userRole == 'tutor')
+            if (_userRole == 'tutor')
               ListTile(
                 leading: const Icon(Icons.edit_note_outlined),
                 title: const Text("Chỉnh sửa Hồ sơ công khai"),
                 subtitle: const Text("Kinh nghiệm, môn học, giá tiền..."),
                 trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
                 onTap: () {
-                  // (Điều hướng đến màn hình EditTutorProfileScreen - sẽ tạo sau)
-                  // Navigator.pushNamed(context, '/edit_tutor_profile');
+                  // --- THÊM HÀNH ĐỘNG NÀY ---
+                  Navigator.pushNamed(context, '/edit_tutor_profile');
                 },
               ),
 
@@ -46,13 +45,17 @@ class SettingsScreen extends StatelessWidget {
               leading: const Icon(Icons.lock_outline),
               title: const Text("Thay đổi mật khẩu"),
               trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-              onTap: () { /* Điều hướng */ },
+              onTap: () {
+                Navigator.pushNamed(context, '/change_password');
+               },
             ),
             ListTile(
               leading: const Icon(Icons.notifications_none_outlined),
               title: const Text("Quản lý thông báo"),
               trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-              onTap: () { /* Điều hướng */ },
+              onTap: () { 
+                Navigator.pushNamed(context, '/notification_settings');
+               },
             ),
             
             const Divider(height: 20, thickness: 1, indent: 16, endIndent: 16),

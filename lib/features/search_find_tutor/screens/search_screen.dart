@@ -1,6 +1,7 @@
 // lib/features/search_find_tutor/screens/search_screen.dart
 
 import 'package:flutter/material.dart';
+import '../../profile/screens/tutor_profile_detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   final String? initialCategory;
@@ -176,12 +177,20 @@ class _SearchScreenState extends State<SearchScreen> {
             child: ListView.builder(
               itemCount: 20, // Giả lập
               itemBuilder: (context, index) {
-                return ListTile(
-                  leading: const CircleAvatar(child: Icon(Icons.person)),
-                  title: Text("Kết quả Gia sư ${index + 1}"),
-                  subtitle: const Text("Môn học: Toán, Lý..."),
-                  trailing: const Icon(Icons.arrow_forward_ios),
-                );
+                return ListTile( // 1. SỬA LẠI LISTTILE
+                          leading: const CircleAvatar(child: Icon(Icons.person)),
+                          title: Text("Kết quả Gia sư ${index + 1}"),
+                          subtitle: const Text("Môn học: Toán, Lý..."),
+                          trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                          onTap: () { // 2. THÊM ONTAP
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => TutorProfileDetailScreen(tutorId: 'id_ket_qua_${index + 1}'),
+                              ),
+                            );
+                          },
+                        );
               },
             ),
           ),

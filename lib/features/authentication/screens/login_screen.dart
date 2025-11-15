@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../core/services/api_service.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -10,6 +12,9 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final ApiService _apiService = ApiService();
+  bool _isLoading = false;
+
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -21,17 +26,36 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _login() {
+  void _login() async {
     if (_formKey.currentState!.validate()) {
-      // Thực hiện logic đăng nhập tại đây
-      print("Email: ${_emailController.text}");
-      print("Mật khẩu: ${_passwordController.text}");
+      setState(() {
+        _isLoading = true;
+      });
 
-      // Sau khi đăng nhập thành công:
-      // - Xác định vai trò của người dùng từ backend
-      // - Điều hướng đến MainNavigationScreen
-      // Ví dụ: Giả sử đăng nhập thành công và vai trò là 'student'
-      Navigator.pushReplacementNamed(context, '/main'); 
+      try {
+        // Gọi API
+        final result = await _apiService.login(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
+
+        // Đăng nhập thành công! (Token đã được lưu bởi ApiService)
+        // Chuyển hướng đến màn hình chính
+        Navigator.pushReplacementNamed(context, '/main');
+
+      } catch (e) {
+        // Đăng nhập thất bại
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString().replaceAll("Exception: ", "")}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -108,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
-                      // (Điều hướng đến màn hình Quên mật khẩu)
+                      Navigator.pushNamed(context, '/forgot_password');
                     },
                     child: Text(
                       "Quên mật khẩu?",
@@ -117,18 +141,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
-
                 SizedBox(
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: _login,
+                    onPressed: _isLoading ? null : _login, // <-- Cập nhật
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).primaryColor,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text("Đăng nhập", style: TextStyle(fontSize: 18)),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white) // <-- Vòng xoay
+                        : const Text("Đăng nhập", style: TextStyle(fontSize: 18)),
                   ),
                 ),
                 const SizedBox(height: 20),

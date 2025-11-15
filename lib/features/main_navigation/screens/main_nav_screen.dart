@@ -6,12 +6,13 @@ import 'package:flutter/material.dart';
 import '../../search_find_tutor/screens/home_screen.dart';
 import '../../schedule/screens/my_schedule_screen.dart';
 import '../../profile/screens/my_profile_screen.dart';
-
-// Import các màn hình PLACEHOLDER (tạm thời)
+import '../../chat/screens/chat_list_screen.dart';
+import '../../requests/screens/requests_screen.dart';
+// Import các màn hình PLACEHOLDER (tạm thời) 
 import '../../placeholder_screens.dart'; 
 
 class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({super.key});
+  const MainNavigationScreen({super.key});  
 
   @override
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
@@ -36,13 +37,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       _screens = const [
         HomeScreen(),            // Tab 1: Trang chủ (thay cho Tìm kiếm)
         MyScheduleScreen(),      // Tab 2: Lịch học (thay cho Yêu thích)
-        ChatScreenPlaceholder(), // Tab 3: Tin nhắn (tạm thời)
+        ChatListScreen(),       // Tab 3: Tin nhắn (tạm thời)
         MyProfileScreen(),       // Tab 4: Hồ sơ (đã cập nhật)
       ];
       _navItems = const [
         BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined), 
-            activeIcon: Icon(Icons.home_filled), 
+            activeIcon: Icon(Icons.home_filled),  
             label: "Trang chủ"
         ),
         BottomNavigationBarItem(
@@ -65,9 +66,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     // --- CẤU HÌNH CHO GIA SƯ ---
     } else if (_userRole == 'tutor') {
       _screens = const [
-        RequestsScreenPlaceholder(), // Tab 1: Yêu cầu (tạm thời)
+        RequestsScreen(), // Tab 1: Yêu cầu (tạm thời)
         MyScheduleScreen(),          // Tab 2: Lịch dạy (đã cập nhật)
-        ChatScreenPlaceholder(),     // Tab 3: Tin nhắn (tạm thời)
+        ChatListScreen(),     // Tab 3: Tin nhắn (tạm thời)
         MyProfileScreen(),           // Tab 4: Hồ sơ (đã cập nhật)
       ];
       _navItems = const [
