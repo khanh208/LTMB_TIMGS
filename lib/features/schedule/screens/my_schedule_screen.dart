@@ -1,7 +1,13 @@
 // lib/features/schedule/screens/my_schedule_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:table_calendar/table_calendar.dart'; // Import package
+import 'package:provider/provider.dart'; 
+import 'package:table_calendar/table_calendar.dart';
+import '../../../core/providers/auth_provider.dart';
+import '../../../core/services/api_service.dart';
+import '../../../core/utils/error_handler.dart';
+import '../models/schedule_event_model.dart';
+import '../../../core/providers/navigation_provider.dart';
 
 class MyScheduleScreen extends StatefulWidget {
   const MyScheduleScreen({super.key});
@@ -11,120 +17,207 @@ class MyScheduleScreen extends StatefulWidget {
 }
 
 class _MyScheduleScreenState extends State<MyScheduleScreen> {
-  // (Giả lập vai trò, sau này bạn sẽ lấy từ state)
-  final String _userRole = 'student'; 
+  final ApiService _apiService = ApiService();
 
   CalendarFormat _calendarFormat = CalendarFormat.month;
-  DateTime _focusedDay = DateTime.now(); // Ngày đang được focus
-  DateTime? _selectedDay; // Ngày đang được chọn (có thể null)
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
 
-  // (Dữ liệu giả lập cho các buổi học - Dùng để hiển thị "dấu chấm")
-  // Bạn sẽ lấy dữ liệu này từ API/Firebase
-  final Map<DateTime, List<String>> _events = {
-    DateTime.utc(2025, 11, 10): ['Buổi học Toán', 'Buổi học Lý'],
-    DateTime.utc(2025, 11, 15): ['Buổi học Hóa'],
-    DateTime.utc(2025, 11, 20): ['Buổi học Tiếng Anh'],
-  };
+  List<ScheduleEventModel> _allSchedules = [];
+  bool _isLoading = true;
+  bool _hasError = false;
 
-  // Hàm lấy các sự kiện cho một ngày (cho "dấu chấm")
-  List<String> _getEventsForDay(DateTime day) {
-    // Chuyển đổi ngày để so sánh (loại bỏ thông tin giờ)
-    final dayUtc = DateTime.utc(day.year, day.month, day.day);
-    return _events[dayUtc] ?? []; // Trả về danh sách sự kiện hoặc list rỗng
-  }
+  // Map để lưu events cho calendar (key: DateTime, value: List of event names)
+  Map<DateTime, List<String>> _events = {};
 
   @override
   void initState() {
     super.initState();
-    _selectedDay = _focusedDay; // Chọn ngày hôm nay làm ngày mặc định
+    _selectedDay = _focusedDay;
+    _loadSchedules();
+  }
+
+  Future<void> _loadSchedules() async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+
+    try {
+      final schedulesData = await _apiService.getSchedules();
+
+      if (mounted) {
+        setState(() {
+          _allSchedules = schedulesData
+              .map((json) => ScheduleEventModel.fromJson(json))
+              .toList();
+
+          // Tạo events map cho calendar
+          _events = {};
+          for (var schedule in _allSchedules) {
+            final day = DateTime.utc(
+              schedule.startTime.year,
+              schedule.startTime.month,
+              schedule.startTime.day,
+            );
+            if (_events.containsKey(day)) {
+              _events[day]!.add(schedule.subjectName);
+            } else {
+              _events[day] = [schedule.subjectName];
+            }
+          }
+
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+          _isLoading = false;
+          _allSchedules = [];
+          _events = {};
+        });
+
+        // Hiển thị popup thông báo lỗi
+        ErrorHandler.showErrorDialogFromException(
+          context,
+          e,
+          onRetry: _loadSchedules,
+        );
+      }
+    }
+  }
+
+  List<String> _getEventsForDay(DateTime day) {
+    final dayUtc = DateTime.utc(day.year, day.month, day.day);
+    return _events[dayUtc] ?? [];
+  }
+
+  List<ScheduleEventModel> _getSchedulesForDay(DateTime? day) {
+    if (day == null) return [];
+    
+    return _allSchedules.where((schedule) {
+      final scheduleDay = DateTime.utc(
+        schedule.startTime.year,
+        schedule.startTime.month,
+        schedule.startTime.day,
+      );
+      final selectedDayUtc = DateTime.utc(day.year, day.month, day.day);
+      return scheduleDay == selectedDayUtc;
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_userRole == 'student' ? "Lịch học của tôi" : "Lịch dạy của tôi"),
-      ),
-      body: Column(
-        children: [
-          // --- 1. LỊCH XEM (CALENDAR VIEW) ---
-          TableCalendar(
-            locale: 'vi_VN', // (Bạn cần thêm package intl: để có tiếng Việt)
-            firstDay: DateTime.utc(2020, 1, 1),
-            lastDay: DateTime.utc(2030, 12, 31),
-            focusedDay: _focusedDay,
-            calendarFormat: _calendarFormat,
-            selectedDayPredicate: (day) {
-              // Dùng để làm nổi bật ngày được chọn
-              return isSameDay(_selectedDay, day);
-            },
-            onDaySelected: (selectedDay, focusedDay) {
-              // Hàm chạy khi người dùng bấm vào một ngày
-              setState(() {
-                _selectedDay = selectedDay;
-                _focusedDay = focusedDay; // Cập nhật ngày focus
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        final userRole = authProvider.userRole ?? 'student';
+        
+        // Listen NavigationProvider để chọn ngày khi navigate từ Dashboard
+        return Consumer<NavigationProvider>(
+          builder: (context, navProvider, child) {
+            // Nếu có target date, chọn ngày đó
+            if (navProvider.targetDate != null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                setState(() {
+                  _selectedDay = navProvider.targetDate;
+                  _focusedDay = navProvider.targetDate!;
+                });
+                navProvider.clearTarget(); // Clear sau khi đã chọn
               });
-            },
-            onFormatChanged: (format) {
-              // Cho phép đổi qua lại (tháng, 2 tuần, tuần)
-              setState(() {
-                _calendarFormat = format;
-              });
-            },
-            onPageChanged: (focusedDay) {
-              // Khi người dùng vuốt sang tháng khác
-              _focusedDay = focusedDay;
-            },
-            // --- Đánh dấu các ngày có sự kiện ---
-            eventLoader: _getEventsForDay, 
-            calendarStyle: const CalendarStyle(
-              // Tùy chỉnh dấu chấm (marker)
-              markersMaxCount: 1, // Chỉ hiển thị 1 dấu chấm dù có nhiều sự kiện
-              markerDecoration: BoxDecoration(
-                color: Colors.red, // Màu của dấu chấm
-                shape: BoxShape.circle,
+            }
+            
+            return Scaffold(
+              appBar: AppBar(
+                title: Text(userRole == 'student' ? "Lịch học của tôi" : "Lịch dạy của tôi"),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: _loadSchedules,
+                  ),
+                ],
               ),
-            ),
-          ),
-          
-          const Divider(height: 1),
-          const SizedBox(height: 16),
+              body: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : Column(
+                      children: [
+                        TableCalendar(
+                          locale: 'vi_VN',
+                          firstDay: DateTime.utc(2020, 1, 1),
+                          lastDay: DateTime.utc(2030, 12, 31),
+                          focusedDay: _focusedDay,
+                          calendarFormat: _calendarFormat,
+                          selectedDayPredicate: (day) {
+                            return isSameDay(_selectedDay, day);
+                          },
+                          onDaySelected: (selectedDay, focusedDay) {
+                            setState(() {
+                              _selectedDay = selectedDay;
+                              _focusedDay = focusedDay;
+                            });
+                          },
+                          onFormatChanged: (format) {
+                            setState(() {
+                              _calendarFormat = format;
+                            });
+                          },
+                          onPageChanged: (focusedDay) {
+                            setState(() {
+                              _focusedDay = focusedDay;
+                            });
+                          },
+                          eventLoader: _getEventsForDay,
+                          calendarStyle: const CalendarStyle(
+                            markersMaxCount: 1,
+                            markerDecoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                        
+                        const Divider(height: 1),
+                        const SizedBox(height: 16),
 
-          // --- 2. DANH SÁCH AGENDA (AGENDA LIST) ---
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              "Lịch học ngày ${_selectedDay?.day}/${_selectedDay?.month}",
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ),
-          Expanded(
-            child: _buildAgendaList(),
-          ),
-        ],
-      ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Text(
+                            "Lịch học ngày ${_selectedDay?.day}/${_selectedDay?.month}",
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildAgendaList(userRole),
+                        ),
+                      ],
+                    ),
+            );
+          },
+        );
+      },
     );
   }
 
-  // --- HÀM BUILD DANH SÁCH AGENDA ---
-  Widget _buildAgendaList() {
-    // Lấy danh sách sự kiện của ngày đã chọn
-    final events = _getEventsForDay(_selectedDay ?? DateTime.now());
+  Widget _buildAgendaList(String userRole) {
+    final schedulesForDay = _getSchedulesForDay(_selectedDay);
 
-    if (events.isEmpty) {
+    if (schedulesForDay.isEmpty) {
       return const Center(
-        child: Text("Không có buổi học nào vào ngày này."),
+        child: Text(
+          "Không có buổi học nào vào ngày này.",
+          style: TextStyle(color: Colors.grey, fontSize: 16),
+        ),
       );
     }
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: events.length,
+      itemCount: schedulesForDay.length,
       itemBuilder: (context, index) {
-        // Đây là "Thẻ Buổi học" (Session Card)
         return _SessionCard(
-          eventName: events[index],
-          userRole: _userRole,
+          schedule: schedulesForDay[index],
+          userRole: userRole,
         );
       },
     );
@@ -133,14 +226,48 @@ class _MyScheduleScreenState extends State<MyScheduleScreen> {
 
 // --- WIDGET THẺ BUỔI HỌC (SESSION CARD) ---
 class _SessionCard extends StatelessWidget {
-  final String eventName;
+  final ScheduleEventModel schedule;
   final String userRole;
 
-  const _SessionCard({required this.eventName, required this.userRole});
+  const _SessionCard({
+    required this.schedule,
+    required this.userRole,
+  });
+
+  String _getStatusText(String status) {
+    switch (status) {
+      case 'pending':
+        return 'Chờ xác nhận';
+      case 'confirmed':
+        return 'Đã xác nhận';
+      case 'completed':
+        return 'Đã hoàn thành';
+      case 'cancelled':
+        return 'Đã hủy';
+      default:
+        return status;
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'pending':
+        return Colors.orange;
+      case 'confirmed':
+        return Colors.green;
+      case 'completed':
+        return Colors.blue;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    bool isStudent = userRole == 'student';
+    final isStudent = userRole == 'student';
+    final otherPersonName = isStudent ? schedule.tutorName : schedule.studentName;
 
     return Card(
       elevation: 2,
@@ -155,22 +282,20 @@ class _SessionCard extends StatelessWidget {
           padding: const EdgeInsets.all(16.0),
           child: Row(
             children: [
-              // Thông tin chính
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "19:00 - 21:00", // (Dữ liệu giả)
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    Text(
+                      schedule.formattedTime,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      eventName, // (Tên môn học/buổi học)
+                      schedule.subjectName,
                       style: const TextStyle(fontSize: 14),
                     ),
                     const SizedBox(height: 8),
-                    // Hiển thị thông tin theo vai trò
                     Row(
                       children: [
                         CircleAvatar(
@@ -180,7 +305,7 @@ class _SessionCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          isStudent ? "Gia sư: Nguyễn Văn A" : "Học viên: Trần Thị B",
+                          isStudent ? "Gia sư: $otherPersonName" : "Học viên: $otherPersonName",
                           style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                         ),
                       ],
@@ -188,21 +313,24 @@ class _SessionCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // Trạng thái
               Column(
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.green[100],
+                      color: _getStatusColor(schedule.status).withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text(
-                      "Đã xác nhận",
-                      style: TextStyle(color: Colors.green, fontSize: 12),
+                    child: Text(
+                      _getStatusText(schedule.status),
+                      style: TextStyle(
+                        color: _getStatusColor(schedule.status),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                  const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+                  const SizedBox(height: 8),
                 ],
               )
             ],

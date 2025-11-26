@@ -1,17 +1,23 @@
 // lib/features/chat/screens/chat_detail_screen.dart
 
 import 'package:flutter/material.dart';
-
+import 'package:provider/provider.dart';
+import '../../../core/services/api_service.dart';
+import '../../../core/models/message_model.dart';
+import '../../../core/providers/auth_provider.dart';
+import '../../../core/utils/error_handler.dart';
 import 'chat_bubble.dart';
 
 class ChatDetailScreen extends StatefulWidget {
-  final String recipientName; // Tên người bạn đang chat
-  final String recipientId;   // ID của người bạn đang chat
+  final String recipientName;
+  final String recipientId;
+  final String? roomId;
 
   const ChatDetailScreen({
     super.key,
     required this.recipientName,
     required this.recipientId,
+    this.roomId,
   });
 
   @override
@@ -20,39 +26,131 @@ class ChatDetailScreen extends StatefulWidget {
 
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final TextEditingController _messageController = TextEditingController();
+  final ApiService _apiService = ApiService();
   
-  // Dữ liệu giả lập cho danh sách tin nhắn
-  // (Bạn sẽ thay thế bằng StreamBuilder từ Firebase)
-  final List<Map<String, dynamic>> _messages = [
-    {'senderId': 'other_user', 'message': 'Chào em, em muốn học môn gì?'},
-    {'senderId': 'my_user_id', 'message': 'Dạ em muốn học Lập trình Flutter ạ.'},
-    {'senderId': 'other_user', 'message': 'Ok em. Lịch của em thế nào?'},
-    {'senderId': 'my_user_id', 'message': 'Em rảnh tối T3, T5 ạ. Thầy xem có sắp xếp được không ạ.'},
-  ];
+  List<MessageModel> _messages = [];
+  bool _isLoading = true;
+  bool _isSending = false;
 
-  void _sendMessage() {
-    if (_messageController.text.trim().isEmpty) {
-      return; // Không gửi tin nhắn rỗng
-    }
-    
-    // (Xử lý logic gửi tin nhắn lên Firebase tại đây)
-    
-    // Giả lập thêm tin nhắn vào danh sách
-    setState(() {
-      _messages.add({
-        'senderId': 'my_user_id',
-        'message': _messageController.text.trim(),
+  @override
+  void initState() {
+    super.initState();
+    if (widget.roomId != null && widget.roomId!.isNotEmpty) {
+      _loadMessages();
+      _markAsRead(); // <-- THÊM MỚI: Đánh dấu đã đọc ngay khi vào
+    } else {
+      setState(() {
+        _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _loadMessages() async {
+    if (widget.roomId == null || widget.roomId!.isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
     });
 
-    _messageController.clear(); // Xóa text trong ô nhập
+    try {
+      final messagesData = await _apiService.getChatMessages(widget.roomId!);
+      
+      if (mounted) {
+        setState(() {
+          _messages = messagesData
+              .map((json) => MessageModel.fromJson(json))
+              .toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _messages = []; // Hiển thị empty state
+        });
+        
+        // Hiển thị popup thông báo lỗi
+        ErrorHandler.showErrorDialogFromException(
+          context,
+          e,
+          onRetry: _loadMessages,
+        );
+      }
+    }
+  }
+
+  Future<void> _sendMessage() async {
+    if (_messageController.text.trim().isEmpty || _isSending) {
+      return;
+    }
+
+    if (widget.roomId == null || widget.roomId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không thể gửi tin nhắn: Thiếu room ID')),
+      );
+      return;
+    }
+
+    final messageText = _messageController.text.trim();
+    _messageController.clear();
+
+    setState(() {
+      _isSending = true;
+    });
+
+    try {
+      // Gửi tin nhắn lên API
+      await _apiService.sendMessage(widget.roomId!, messageText);
+      
+      // Reload messages để lấy tin nhắn mới nhất
+      await _loadMessages();
+      
+      if (mounted) {
+        setState(() {
+          _isSending = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSending = false;
+        });
+        
+        // Khôi phục text nếu gửi thất bại
+        _messageController.text = messageText;
+        
+        // Hiển thị popup thông báo lỗi
+        ErrorHandler.showErrorDialogFromException(
+          context,
+          e,
+          onRetry: _sendMessage,
+        );
+      }
+    }
+  }
+
+  // THÊM MỚI: Đánh dấu room là đã đọc (fire & forget)
+  void _markAsRead() {
+    if (widget.roomId == null || widget.roomId!.isEmpty) return;
+    
+    // Gọi API nhưng không đợi response (fire & forget)
+    _apiService.markChatRoomAsRead(widget.roomId!);
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final currentUserId = authProvider.user?.id ?? ''; // <-- SỬA: userId thành id
+
     return Scaffold(
       appBar: AppBar(
-        // Tiêu đề là tên và avatar của người nhận
         title: Row(
           children: [
             const CircleAvatar(
@@ -69,21 +167,32 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         children: [
           // --- 1. DANH SÁCH TIN NHẮN ---
           Expanded(
-            child: ListView.builder(
-              reverse: true, // Hiển thị tin nhắn mới nhất ở dưới cùng
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                // Sắp xếp lại để hiển thị đúng (vì reverse = true)
-                final messageData = _messages.reversed.toList()[index];
-                final bool isSender = messageData['senderId'] == 'my_user_id';
-                
-                return ChatBubble(
-                  message: messageData['message'],
-                  isSender: isSender,
-                );
-              },
-            ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _messages.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Chưa có tin nhắn nào',
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: _loadMessages,
+                        child: ListView.builder(
+                          reverse: true, // Tin nhắn mới nhất ở dưới
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          itemCount: _messages.length,
+                          itemBuilder: (context, index) {
+                            final message = _messages.reversed.toList()[index];
+                            final bool isSender = message.senderUserId == currentUserId;
+                            
+                            return ChatBubble(
+                              message: message.messageText,
+                              isSender: isSender,
+                            );
+                          },
+                        ),
+                      ),
           ),
 
           // --- 2. KHUNG NHẬP TIN NHẮN ---
@@ -93,7 +202,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
-  // --- Widget Khung nhập tin nhắn ---
   Widget _buildMessageInputField() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -109,13 +217,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           ),
         ],
       ),
-      child: SafeArea( // Để tránh thanh điều hướng của hệ thống (nếu có)
+      child: SafeArea(
         child: Row(
           children: [
-            // Ô nhập text
             Expanded(
               child: TextField(
                 controller: _messageController,
+                enabled: !_isSending,
                 decoration: const InputDecoration(
                   hintText: "Nhập tin nhắn...",
                   border: InputBorder.none,
@@ -124,17 +232,27 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
                 textCapitalization: TextCapitalization.sentences,
-                maxLines: null, // Cho phép xuống dòng
+                maxLines: null,
+                onSubmitted: (_) => _sendMessage(),
               ),
             ),
-            // Nút Gửi
-            IconButton(
-              icon: Icon(Icons.send, color: Theme.of(context).primaryColor),
-              onPressed: _sendMessage,
-            ),
+            if (_isSending)
+              const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            else
+              IconButton(
+                icon: Icon(Icons.send, color: Theme.of(context).primaryColor),
+                onPressed: _sendMessage,
+              ),
           ],
         ),
       ),
     );
   }
-} 
+}

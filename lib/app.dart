@@ -5,6 +5,7 @@ import 'features/main_navigation/screens/main_nav_screen.dart';
 import 'features/profile/screens/settings_screen.dart'; 
 import 'features/authentication/screens/onboarding_screen.dart';
 import 'features/authentication/screens/login_screen.dart';
+import 'features/authentication/screens/splash_screen.dart'; // <-- THÊM
 import 'features/profile/screens/edit_tutor_profile_screen.dart'; 
 // --- 1. IMPORT FILE ĐĂNG KÝ MỚI ---
 import 'features/authentication/screens/register_screen.dart';
@@ -16,6 +17,7 @@ import 'features/profile/screens/change_password_screen.dart';
 import 'features/profile/screens/saved_tutors_screen.dart';
 import 'features/profile/screens/wallet_screen.dart';
 import 'features/authentication/screens/forgot_password_screen.dart';
+import 'features/profile/screens/reviews_list_screen.dart'; // <-- THÊM
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -45,12 +47,10 @@ class App extends StatelessWidget {
         ),
       ),
 
-      // --- CẬP NHẬT ĐƯỜNG DẪN ---
-      
-      // 1. Giữ 'home' là OnboardingScreen
-      home: const OnboardingScreen(), 
+      // Thay đổi home thành SplashScreen
+      home: const SplashScreen(),
 
-      // 2. Định nghĩa các đường dẫn
+      // Định nghĩa các đường dẫn
       routes: {
         '/main': (context) => const MainNavigationScreen(),
         '/login': (context) => const LoginScreen(), 
@@ -65,6 +65,7 @@ class App extends StatelessWidget {
         '/saved_tutors': (context) => const SavedTutorsScreen(),
         '/wallet': (context) => const WalletScreen(),
         '/forgot_password': (context) => const ForgotPasswordScreen(),
+        '/reviews_list': (context) => const ReviewsListScreen(),
       },
     );
   }

@@ -2,6 +2,10 @@
 
 import 'package:flutter/material.dart';
 import '../../profile/screens/tutor_profile_detail_screen.dart';
+import '../../../core/services/api_service.dart';
+import '../../../core/models/tutor_model.dart';
+import '../../../core/utils/error_handler.dart';
+import '../../../core/widgets/avatar_widget.dart';
 
 class SearchScreen extends StatefulWidget {
   final String? initialCategory;
@@ -14,6 +18,7 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ApiService _apiService = ApiService();
 
   // --- STATE CHO BỘ LỌC ---
   final Set<String> _selectedQuickFilters = {};
@@ -23,18 +28,26 @@ class _SearchScreenState extends State<SearchScreen> {
   // (Bạn có thể dùng state này để hiển thị các chip lọc nâng cao đã chọn)
   // Map<String, Set<String>> _advancedFilters = {};
 
+  // --- STATE CHO DỮ LIỆU ---
+  List<TutorModel> _tutors = [];
+  bool _isLoading = false;
+  String? _error;
+
   @override
   void initState() {
     super.initState();
     if (widget.initialCategory != null) {
       _searchController.text = _getCategoryName(widget.initialCategory!);
-      // (Tải dữ liệu ban đầu theo category)
     }
+    _loadTutors();
   }
 
   String _getCategoryName(String key) {
     if (key == 'tin_hoc') return "Tin học";
     if (key == 'ngoai_ngu') return "Ngoại ngữ";
+    if (key == 'ky_nang_mem') return "Kỹ năng mềm";
+    if (key == 'pho_thong') return "Phổ thông";
+    if (key == 'tieu_hoc') return "Tiểu học";
     return key;
   }
 
@@ -42,6 +55,36 @@ class _SearchScreenState extends State<SearchScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadTutors() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final tutorsData = await _apiService.getTutors(
+        category: widget.initialCategory,
+        search: _searchController.text.trim().isEmpty 
+            ? null 
+            : _searchController.text.trim(),
+      );
+      
+      setState(() {
+        _tutors = tutorsData.map((json) => TutorModel.fromJson(json)).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _performSearch() {
+    _loadTutors();
   }
 
   // --- HÀM MỞ POPUP LỌC NÂNG CAO (ĐÃ CẬP NHẬT) ---
@@ -66,6 +109,7 @@ class _SearchScreenState extends State<SearchScreen> {
         _selectedQuickFilters.clear(); // Xóa các lựa chọn ở lọc nhanh
         // (Bạn sẽ gọi API lọc lại danh sách với các filter nâng cao)
       });
+      _loadTutors(); // Reload với filter mới
     }
   }
 
@@ -112,6 +156,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     }
                     // (Gọi API lọc lại danh sách)
                   });
+                  _loadTutors(); // Reload khi filter thay đổi
                 },
                 selectedColor: Theme.of(context).primaryColor.withOpacity(0.1),
                 labelStyle: TextStyle(
@@ -143,10 +188,10 @@ class _SearchScreenState extends State<SearchScreen> {
             border: InputBorder.none,
             suffixIcon: IconButton(
               icon: const Icon(Icons.search),
-              onPressed: () { /* Xử lý tìm kiếm */ },
+              onPressed: _performSearch,
             ),
           ),
-          onSubmitted: (value) { /* Xử lý tìm kiếm */ },
+          onSubmitted: (_) => _performSearch(),
         ),
         actions: [
           // 4. Thêm nút "Reset" nếu lọc nâng cao đang bật
@@ -157,15 +202,14 @@ class _SearchScreenState extends State<SearchScreen> {
                   _isAdvancedFilterActive = false; // Tắt lọc nâng cao
                   // (Gọi API tải lại danh sách gốc)
                 });
+                _loadTutors();
               },
               child: const Text("Reset", style: TextStyle(color: Colors.red)),
             ),
             
           IconButton(
             icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              _showAdvancedFilter(context);
-            },
+            onPressed: () => _showAdvancedFilter(context),
           ),
         ],
       ),
@@ -174,34 +218,85 @@ class _SearchScreenState extends State<SearchScreen> {
           _buildQuickFilterBar(),
           
           Expanded(
-            child: ListView.builder(
-              itemCount: 20, // Giả lập
-              itemBuilder: (context, index) {
-                return ListTile( // 1. SỬA LẠI LISTTILE
-                          leading: const CircleAvatar(child: Icon(Icons.person)),
-                          title: Text("Kết quả Gia sư ${index + 1}"),
-                          subtitle: const Text("Môn học: Toán, Lý..."),
-                          trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-                          onTap: () { // 2. THÊM ONTAP
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => TutorProfileDetailScreen(tutorId: 'id_ket_qua_${index + 1}'),
-                              ),
-                            );
-                          },
-                        );
-              },
-            ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Lỗi: $_error',
+                              style: const TextStyle(color: Colors.red),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _loadTutors,
+                              child: const Text('Thử lại'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : _tutors.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'Không tìm thấy gia sư nào',
+                              style: TextStyle(color: Colors.grey, fontSize: 16),
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: _tutors.length,
+                            itemBuilder: (context, index) {
+                              final tutor = _tutors[index];
+                              return ListTile(
+                                leading: AvatarWidget(
+                                  avatarUrl: tutor.avatarUrl,
+                                  radius: 20,
+                                ),
+                                title: Text(tutor.fullName),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (tutor.bio != null)
+                                      Text(
+                                        tutor.bio!,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.star, color: Colors.amber, size: 16),
+                                        const SizedBox(width: 4),
+                                        Text(tutor.ratingValue.toStringAsFixed(1)),
+                                        const SizedBox(width: 16),
+                                        Text(
+                                          tutor.formattedPrice,
+                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => TutorProfileDetailScreen(tutorId: tutor.userId),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
           ),
         ],
       ),
     );
   }
 }
-
-// (Toàn bộ code của SearchScreen và _SearchScreenState giữ nguyên như cũ)
-// ...
 
 // --- WIDGET NỘI DUNG CHO POPUP LỌC NÂNG CAO (ĐÃ CẬP NHẬT) ---
 class _AdvancedFilterContent extends StatefulWidget {

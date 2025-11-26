@@ -1,14 +1,17 @@
 // lib/main.dart
 
 import 'package:flutter/material.dart';
-import 'app.dart'; // Import file app.dart của chúng ta
-import 'package:intl/date_symbol_data_local.dart'; // <<< 1. IMPORT DÒNG NÀY
+import 'package:provider/provider.dart'; 
+import 'app.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'core/providers/auth_provider.dart'; 
+import 'core/providers/navigation_provider.dart';
 
 // (Bạn sẽ cần import Firebase sau này)
 // import 'package:firebase_core/firebase_core.dart';
 // import 'firebase_options.dart'; 
 
-void main() async { // 2. ĐẢM BẢO CÓ `async`
+void main() async {
   
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -21,6 +24,15 @@ void main() async { // 2. ĐẢM BẢO CÓ `async`
   // <<< 3. THÊM DÒNG NÀY ĐỂ NẠP TIẾNG VIỆT >>>
   await initializeDateFormatting('vi_VN', null);
 
-  // Chạy widget App (định nghĩa trong app.dart)
-  runApp(const App());
+  // Wrap App với Provider
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => NavigationProvider()),
+        // Có thể thêm các Provider khác ở đây
+      ],
+      child: const App(),
+    ),
+  );
 }

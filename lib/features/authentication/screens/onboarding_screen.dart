@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/utils/app_preferences.dart';
 
 // (Giữ nguyên OnboardingScreen StatefulWidget ở đây)
 class OnboardingScreen extends StatefulWidget {
@@ -78,9 +79,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (currentPage == demoData.length - 1) {
-                    Navigator.pushReplacementNamed(context, '/login');
+                    // Đánh dấu onboarding đã hoàn thành
+                    await AppPreferences.setOnboardingCompleted();
+                    // Chuyển đến màn hình login
+                    if (mounted) {
+                      Navigator.pushReplacementNamed(context, '/login');
+                    }
                   } else {
                     _pageController.nextPage(
                       duration: const Duration(milliseconds: 300),

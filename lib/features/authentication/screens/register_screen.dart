@@ -1,8 +1,9 @@
 // lib/features/authentication/screens/register_screen.dart
 
 import 'package:flutter/material.dart';
-  import '../../../core/services/api_service.dart';
+import '../../../core/services/api_service.dart';
 import '../widgets/role_selection_screen.dart'; // Import widget chọn vai trò
+import '../../../core/utils/error_handler.dart'; // <-- THÊM
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -61,11 +62,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       } catch (e) {
         // Đăng ký thất bại
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi: ${e.toString().replaceAll("Exception: ", "")}'),
-            backgroundColor: Colors.red,
-          ),
+        // Hiển thị popup thông báo lỗi
+        ErrorHandler.showErrorDialogFromException(
+          context,
+          e,
+          onRetry: _register,
         );
       } finally {
         setState(() {

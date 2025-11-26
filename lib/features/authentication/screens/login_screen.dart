@@ -3,6 +3,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/services/api_service.dart';
+import 'package:provider/provider.dart';
+import '../../../core/providers/auth_provider.dart';
+import '../../../core/utils/error_handler.dart'; // <-- THÊM
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,7 +15,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final ApiService _apiService = ApiService();
   bool _isLoading = false;
 
   final _formKey = GlobalKey<FormState>();
@@ -33,28 +35,30 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       try {
-        // Gọi API
-        final result = await _apiService.login(
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        await authProvider.login(
           _emailController.text.trim(),
           _passwordController.text.trim(),
         );
 
-        // Đăng nhập thành công! (Token đã được lưu bởi ApiService)
-        // Chuyển hướng đến màn hình chính
-        Navigator.pushReplacementNamed(context, '/main');
-
+        if (context.mounted) {
+          Navigator.pushReplacementNamed(context, '/main');
+        }
       } catch (e) {
-        // Đăng nhập thất bại
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi: ${e.toString().replaceAll("Exception: ", "")}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        if (context.mounted) {
+          // Hiển thị popup thông báo lỗi
+          ErrorHandler.showErrorDialogFromException(
+            context,
+            e,
+            onRetry: _login,
+          );
+        }
       } finally {
-        setState(() {
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
