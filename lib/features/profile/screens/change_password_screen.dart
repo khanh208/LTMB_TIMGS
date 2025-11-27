@@ -1,4 +1,3 @@
-// lib/features/profile/screens/change_password_screen.dart
 
 import 'package:flutter/material.dart';
 
@@ -25,8 +24,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   
   void _changePassword() {
     if (_formKey.currentState!.validate()) {
-      // (Xử lý logic đổi mật khẩu với Firebase Auth ở đây)
-      // ...
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Đổi mật khẩu thành công!"), backgroundColor: Colors.green)
       );

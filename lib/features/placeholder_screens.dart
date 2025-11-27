@@ -1,5 +1,3 @@
-// lib/features/placeholder_screens.dart
-// File này chứa các màn hình giả lập cho các tab
 
 import 'package:flutter/material.dart';
 

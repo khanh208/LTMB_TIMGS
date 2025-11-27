@@ -13,7 +13,6 @@ class ReviewModel {
     required this.studentName,
   });
 
-  // Factory constructor để tạo từ JSON
   factory ReviewModel.fromJson(Map<String, dynamic> json) {
     return ReviewModel(
       reviewId: json['review_id']?.toString() ?? '',
@@ -24,7 +23,6 @@ class ReviewModel {
     );
   }
 
-  // Chuyển đổi sang JSON
   Map<String, dynamic> toJson() {
     return {
       'review_id': reviewId,

@@ -1,4 +1,3 @@
-// lib/features/authentication/widgets/role_selection_card.dart
 
 import 'package:flutter/material.dart';
 
@@ -23,7 +22,6 @@ class RoleSelectionCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Card(
-        // Dùng màu chủ đạo từ Theme
         color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : Colors.white,
         elevation: isSelected ? 4 : 1,
         shape: RoundedRectangleBorder(

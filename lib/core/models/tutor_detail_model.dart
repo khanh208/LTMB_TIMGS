@@ -1,5 +1,6 @@
 import 'subject_model.dart';
 import 'review_model.dart';
+import 'tutor_certificate_model.dart';
 
 class TutorDetailModel {
   final String userId;
@@ -13,6 +14,7 @@ class TutorDetailModel {
   final bool isVerified;
   final List<SubjectModel> subjects;
   final List<ReviewModel> reviews;
+  final List<TutorCertificateModel> certificates;
 
   TutorDetailModel({
     required this.userId,
@@ -26,9 +28,9 @@ class TutorDetailModel {
     required this.isVerified,
     required this.subjects,
     required this.reviews,
+    this.certificates = const [],
   });
 
-  // Factory constructor để tạo từ JSON
   factory TutorDetailModel.fromJson(Map<String, dynamic> json) {
     return TutorDetailModel(
       userId: json['user_id']?.toString() ?? '',
@@ -40,22 +42,24 @@ class TutorDetailModel {
       pricePerHour: json['price_per_hour'] ?? '0.00',
       averageRating: json['average_rating'] ?? '0.00',
       isVerified: json['is_verified'] ?? false,
-      // Parse subjects array
       subjects: json['subjects'] != null
           ? (json['subjects'] as List)
               .map((item) => SubjectModel.fromJson(item))
               .toList()
           : [],
-      // Parse reviews array
       reviews: json['reviews'] != null
           ? (json['reviews'] as List)
               .map((item) => ReviewModel.fromJson(item))
               .toList()
           : [],
+      certificates: json['certificates'] != null
+          ? (json['certificates'] as List)
+              .map((item) => TutorCertificateModel.fromJson(item))
+              .toList()
+          : [],
     );
   }
 
-  // Chuyển đổi sang JSON
   Map<String, dynamic> toJson() {
     return {
       'user_id': userId,
@@ -69,10 +73,10 @@ class TutorDetailModel {
       'is_verified': isVerified,
       'subjects': subjects.map((s) => s.toJson()).toList(),
       'reviews': reviews.map((r) => r.toJson()).toList(),
+      'certificates': certificates.map((c) => c.toJson()).toList(),
     };
   }
 
-  // Format giá tiền để hiển thị
   String get formattedPrice {
     final price = double.tryParse(pricePerHour) ?? 0.0;
     if (price >= 1000000) {
@@ -84,11 +88,9 @@ class TutorDetailModel {
     }
   }
 
-  // Format rating để hiển thị
   double get ratingValue {
     return double.tryParse(averageRating) ?? 0.0;
   }
 
-  // Số lượng đánh giá
   int get reviewCount => reviews.length;
 }

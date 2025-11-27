@@ -204,7 +204,6 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Set user role (nếu cần thay đổi role)
   void setUserRole(String role) {
     if (_user != null) {
       _user = _user!.copyWith(role: role);

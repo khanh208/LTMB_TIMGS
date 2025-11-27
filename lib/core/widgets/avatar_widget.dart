@@ -32,7 +32,6 @@ class AvatarWidget extends StatelessWidget {
   }
 
   ImageProvider? _getImageProvider(String url) {
-    // Dùng helper chung thay vì duplicate code
     return AvatarImageHelper.getImageProvider(url);
   }
 }

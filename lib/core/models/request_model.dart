@@ -1,7 +1,7 @@
 class RequestModel {
   final String requestId;
   final String message;
-  final String status; // 'pending', 'accepted', 'rejected'
+  final String status; 
   final String? createdAt;
   final String studentName;
   final String? avatarUrl;
@@ -15,7 +15,6 @@ class RequestModel {
     this.avatarUrl,
   });
 
-  // Factory constructor để tạo từ JSON
   factory RequestModel.fromJson(Map<String, dynamic> json) {
     return RequestModel(
       requestId: json['request_id']?.toString() ?? '',
@@ -27,7 +26,6 @@ class RequestModel {
     );
   }
 
-  // Chuyển đổi sang JSON
   Map<String, dynamic> toJson() {
     return {
       'request_id': requestId,
@@ -39,10 +37,8 @@ class RequestModel {
     };
   }
 
-  // Helper để format thời gian (nếu cần)
   String get formattedTime {
     if (createdAt == null) return '';
-    // TODO: Format createdAt từ ISO string sang "2 giờ trước", "Hôm qua", etc.
     return createdAt!;
   }
 }

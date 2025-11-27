@@ -9,7 +9,6 @@ class SubjectModel {
     required this.category,
   });
 
-  // Factory constructor để tạo từ JSON
   factory SubjectModel.fromJson(Map<String, dynamic> json) {
     return SubjectModel(
       subjectId: json['subject_id']?.toString() ?? '',
@@ -18,7 +17,6 @@ class SubjectModel {
     );
   }
 
-  // Chuyển đổi sang JSON
   Map<String, dynamic> toJson() {
     return {
       'subject_id': subjectId,

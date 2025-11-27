@@ -1,4 +1,3 @@
-// lib/features/chat/screens/chat_list_screen.dart
 
 import 'package:flutter/material.dart';
 import 'chat_detail_screen.dart';
@@ -49,10 +48,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
         setState(() {
           _hasError = true;
           _isLoading = false;
-          _chatRooms = []; // Hiển thị empty state
+          _chatRooms = []; 
         });
         
-        // Hiển thị popup thông báo lỗi
         ErrorHandler.showErrorDialogFromException(
           context,
           e,
@@ -62,12 +60,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
     }
   }
 
-  // Thêm method public để reload từ bên ngoài
   void reloadChatRooms() {
     _loadChatRooms();
   }
 
-  // CẬP NHẬT: Reload khi quay lại từ ChatDetailScreen
   Future<void> _navigateToChatDetail(ChatRoomModel room) async {
     final result = await Navigator.push(
       context,
@@ -80,7 +76,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
       ),
     );
 
-    // Reload danh sách khi quay lại để cập nhật unread_count
     if (mounted) {
       _loadChatRooms();
     }
@@ -111,29 +106,26 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   onRefresh: _loadChatRooms,
                   child: ListView.separated(
                         itemCount: _chatRooms.length,
-                        separatorBuilder: (context, index) => const Divider(
-                          height: 1,
+        separatorBuilder: (context, index) => const Divider(
+          height: 1,
                           indent: 70,
-                        ),
-                        itemBuilder: (context, index) {
+        ),
+        itemBuilder: (context, index) {
                           final room = _chatRooms[index];
-                          
-                          return ListTile(
-                            // Avatar
+          
+          return ListTile(
                             leading: AvatarWidget(
                               avatarUrl: room.recipientAvatar,
-                              radius: 25,
-                            ),
-                            // Tên với badge unread
+              radius: 25,
+            ),
                             title: Row(
                               children: [
                                 Expanded(
                                   child: Text(
                                     room.recipientName,
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
+              style: const TextStyle(fontWeight: FontWeight.bold),
                                   ),
                                 ),
-                                // Badge đỏ nếu có tin nhắn chưa đọc
                                 if (room.unreadCount > 0)
                                   Container(
                                     padding: const EdgeInsets.symmetric(
@@ -154,25 +146,22 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                     ),
                                   ),
                               ],
-                            ),
-                            // Tin nhắn cuối
+            ),
                             subtitle: const Text(
                               'Nhấn để xem tin nhắn',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
                               style: TextStyle(color: Colors.grey),
-                            ),
-                            // Thời gian
+            ),
                             trailing: const Text(
                               '',
                               style: TextStyle(color: Colors.grey, fontSize: 12),
-                            ),
-                            // Hành động khi bấm vào
-                            onTap: () => _navigateToChatDetail(room), // <-- CẬP NHẬT
-                          );
-                        },
+            ),
+                            onTap: () => _navigateToChatDetail(room), 
+              );
+            },
                       ),
-                ),
+      ),
     );
   }
 } 

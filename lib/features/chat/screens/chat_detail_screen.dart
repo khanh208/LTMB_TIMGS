@@ -1,4 +1,3 @@
-// lib/features/chat/screens/chat_detail_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +5,7 @@ import '../../../core/services/api_service.dart';
 import '../../../core/models/message_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/utils/error_handler.dart';
+import '../../schedule/screens/create_proposal_screen.dart';
 import 'chat_bubble.dart';
 
 class ChatDetailScreen extends StatefulWidget {
@@ -37,7 +37,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     super.initState();
     if (widget.roomId != null && widget.roomId!.isNotEmpty) {
       _loadMessages();
-      _markAsRead(); // <-- THÊM MỚI: Đánh dấu đã đọc ngay khi vào
+      _markAsRead(); 
     } else {
       setState(() {
         _isLoading = false;
@@ -67,10 +67,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _messages = []; // Hiển thị empty state
+          _messages = []; 
         });
         
-        // Hiển thị popup thông báo lỗi
         ErrorHandler.showErrorDialogFromException(
           context,
           e,
@@ -100,10 +99,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     });
 
     try {
-      // Gửi tin nhắn lên API
       await _apiService.sendMessage(widget.roomId!, messageText);
       
-      // Reload messages để lấy tin nhắn mới nhất
       await _loadMessages();
       
       if (mounted) {
@@ -117,10 +114,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           _isSending = false;
         });
         
-        // Khôi phục text nếu gửi thất bại
         _messageController.text = messageText;
         
-        // Hiển thị popup thông báo lỗi
         ErrorHandler.showErrorDialogFromException(
           context,
           e,
@@ -130,11 +125,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
-  // THÊM MỚI: Đánh dấu room là đã đọc (fire & forget)
   void _markAsRead() {
     if (widget.roomId == null || widget.roomId!.isEmpty) return;
     
-    // Gọi API nhưng không đợi response (fire & forget)
     _apiService.markChatRoomAsRead(widget.roomId!);
   }
 
@@ -147,7 +140,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    final currentUserId = authProvider.user?.id ?? ''; // <-- SỬA: userId thành id
+    final currentUserId = authProvider.user?.id ?? ''; 
+    final userRole = authProvider.userRole;
 
     return Scaffold(
       appBar: AppBar(
@@ -162,10 +156,31 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             Text(widget.recipientName),
           ],
         ),
+        actions: [
+          if (userRole == 'tutor')
+            FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CreateProposalScreen(
+                      studentId: widget.recipientId,
+                      studentName: widget.recipientName,
+                    ),
+                  ),
+                ).then((reload) {
+                  if (reload == true) {
+                    _loadMessages();
+                  }
+                });
+              },
+              child: const Icon(Icons.schedule),
+              tooltip: 'Tạo đề xuất lịch học',
+            ),
+        ],
       ),
       body: Column(
         children: [
-          // --- 1. DANH SÁCH TIN NHẮN ---
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -179,7 +194,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     : RefreshIndicator(
                         onRefresh: _loadMessages,
                         child: ListView.builder(
-                          reverse: true, // Tin nhắn mới nhất ở dưới
+                          reverse: true, 
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           itemCount: _messages.length,
                           itemBuilder: (context, index) {
@@ -195,7 +210,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       ),
           ),
 
-          // --- 2. KHUNG NHẬP TIN NHẮN ---
           _buildMessageInputField(),
         ],
       ),

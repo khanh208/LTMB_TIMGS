@@ -17,9 +17,7 @@ class TutorModel {
     required this.isVerified,
   });
 
-  // Factory constructor để tạo từ JSON
   factory TutorModel.fromJson(Map<String, dynamic> json) {
-    // Xử lý avatar_url
     String? avatarUrl;
     final rawAvatarUrl = json['avatar_url'];
     if (rawAvatarUrl != null && rawAvatarUrl is String) {
@@ -35,7 +33,7 @@ class TutorModel {
     return TutorModel(
       userId: json['user_id']?.toString() ?? '',
       fullName: json['full_name'] ?? '',
-      avatarUrl: avatarUrl, // <-- Dùng giá trị đã làm sạch
+      avatarUrl: avatarUrl, 
       bio: json['bio'],
       pricePerHour: json['price_per_hour'] ?? '0.00',
       averageRating: json['average_rating'] ?? '0.00',
@@ -43,7 +41,6 @@ class TutorModel {
     );
   }
 
-  // Chuyển đổi sang JSON
   Map<String, dynamic> toJson() {
     return {
       'user_id': userId,
@@ -56,7 +53,6 @@ class TutorModel {
     };
   }
 
-  // Format giá tiền để hiển thị
   String get formattedPrice {
     final price = double.tryParse(pricePerHour) ?? 0.0;
     if (price >= 1000000) {
@@ -68,7 +64,6 @@ class TutorModel {
     }
   }
 
-  // Format rating để hiển thị
   double get ratingValue {
     return double.tryParse(averageRating) ?? 0.0;
   }

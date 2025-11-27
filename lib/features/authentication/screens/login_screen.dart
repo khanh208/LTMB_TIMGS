@@ -1,11 +1,10 @@
-// lib/features/auth/screens/login_screen.dart
 
 import 'package:flutter/material.dart';
 
 import '../../../core/services/api_service.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/auth_provider.dart';
-import '../../../core/utils/error_handler.dart'; // <-- THÊM
+import '../../../core/utils/error_handler.dart'; 
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -42,22 +41,21 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         if (context.mounted) {
-          Navigator.pushReplacementNamed(context, '/main');
+        Navigator.pushReplacementNamed(context, '/main');
         }
       } catch (e) {
         if (context.mounted) {
-          // Hiển thị popup thông báo lỗi
           ErrorHandler.showErrorDialogFromException(
             context,
             e,
             onRetry: _login,
-          );
+        );
         }
       } finally {
         if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
+        setState(() {
+          _isLoading = false;
+        });
         }
       }
     }
@@ -74,9 +72,8 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo hoặc Tên ứng dụng
                 Icon(
-                  Icons.school_outlined, // Hoặc một logo khác
+                  Icons.school_outlined, 
                   size: 100,
                   color: Theme.of(context).primaryColor,
                 ),
@@ -122,7 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelText: "Mật khẩu",
                     prefixIcon: Icon(Icons.lock),
                     border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.visibility_off), // Có thể thêm toggle visibility
+                    suffixIcon: Icon(Icons.visibility_off), 
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -149,14 +146,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: _isLoading ? null : _login, // <-- Cập nhật
+                    onPressed: _isLoading ? null : _login, 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).primaryColor,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white) // <-- Vòng xoay
+                        ? const CircularProgressIndicator(color: Colors.white) 
                         : const Text("Đăng nhập", style: TextStyle(fontSize: 18)),
                   ),
                 ),
@@ -167,7 +164,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Text("Chưa có tài khoản?"),
                     TextButton(
                       onPressed: () {
-                        // Điều hướng đến màn hình đăng ký
                         Navigator.pushReplacementNamed(context, '/register'); 
                       },
                       child: Text(

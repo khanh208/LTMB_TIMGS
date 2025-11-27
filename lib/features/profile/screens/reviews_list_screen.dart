@@ -1,4 +1,3 @@
-// lib/features/profile/screens/reviews_list_screen.dart
 
 import 'package:flutter/material.dart';
 import '../../../core/services/api_service.dart';
@@ -33,7 +32,6 @@ class _ReviewsListScreenState extends State<ReviewsListScreen> {
     });
 
     try {
-      // Lấy tutorId từ AuthProvider
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final tutorId = authProvider.user?.id;
       
@@ -54,7 +52,6 @@ class _ReviewsListScreenState extends State<ReviewsListScreen> {
               .map((json) => ReviewModel.fromJson(json))
               .toList()
             ..sort((a, b) {
-              // Sắp xếp theo thời gian tạo (mới nhất trước)
               if (a.createdAt != null && b.createdAt != null) {
                 return b.createdAt!.compareTo(a.createdAt!);
               }

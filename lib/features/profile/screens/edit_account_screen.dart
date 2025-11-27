@@ -1,13 +1,12 @@
-// lib/features/profile/screens/edit_account_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/auth_provider.dart';
-import '../../../core/utils/error_handler.dart'; // <-- THÊM
-import 'dart:io'; // <-- THÊM
-import 'package:image_picker/image_picker.dart'; // <-- THÊM (cần thêm vào pubspec.yaml)
-import '../../../core/services/api_service.dart'; // <-- THÊM
-import '../../../core/widgets/avatar_widget.dart'; // <-- THÊM
+import '../../../core/utils/error_handler.dart'; 
+import 'dart:io'; 
+import 'package:image_picker/image_picker.dart'; 
+import '../../../core/services/api_service.dart'; 
+import '../../../core/widgets/avatar_widget.dart'; 
 
 class EditAccountScreen extends StatefulWidget {
   const EditAccountScreen({super.key});
@@ -19,25 +18,23 @@ class EditAccountScreen extends StatefulWidget {
 class _EditAccountScreenState extends State<EditAccountScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Dùng controller để quản lý
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
   late TextEditingController _emailController;
 
   bool _isLoading = false;
   bool _isSaving = false;
-  bool _hasError = false; // <-- Đổi từ String? _error
+  bool _hasError = false; 
 
-  final ApiService _apiService = ApiService(); // <-- THÊM
-  final ImagePicker _imagePicker = ImagePicker(); // <-- THÊM
-  File? _selectedImageFile; // <-- THÊM: File ảnh đã chọn
-  String? _uploadedAvatarUrl; // <-- THÊM: Avatar URL sau khi upload
+  final ApiService _apiService = ApiService(); 
+  final ImagePicker _imagePicker = ImagePicker(); 
+  File? _selectedImageFile; 
+  String? _uploadedAvatarUrl; 
 
   @override
   void initState() {
     super.initState();
     
-    // Lấy dữ liệu từ AuthProvider
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.user;
     
@@ -45,7 +42,6 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
     _phoneController = TextEditingController(text: user?.phone ?? '');
     _emailController = TextEditingController(text: user?.email ?? '');
 
-    // Load thông tin mới nhất từ API
     _loadUserInfo();
   }
 
@@ -72,7 +68,6 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
           _isLoading = false;
         });
         
-        // Hiển thị popup thông báo lỗi
         ErrorHandler.showErrorDialogFromException(
           context,
           e,
@@ -103,7 +98,7 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.updateCurrentUserInfo(
         fullName: _nameController.text.trim(),
-        phoneNumber: _phoneController.text.trim().isEmpty  // <-- SỬA: phone -> phoneNumber
+        phoneNumber: _phoneController.text.trim().isEmpty  
             ? null 
             : _phoneController.text.trim(),
       );
@@ -119,7 +114,6 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
       }
     } catch (e) {
       if (mounted) {
-        // Hiển thị popup thông báo lỗi
         ErrorHandler.showErrorDialogFromException(
           context,
           e,
@@ -135,11 +129,10 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
     }
   }
 
-  // THÊM MỚI: Method để chọn ảnh
   Future<void> _pickImage() async {
     try {
       final XFile? pickedFile = await _imagePicker.pickImage(
-        source: ImageSource.gallery, // Có thể thêm option chụp ảnh
+        source: ImageSource.gallery, 
         maxWidth: 800,
         maxHeight: 800,
         imageQuality: 85,
@@ -148,10 +141,9 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
       if (pickedFile != null) {
         setState(() {
           _selectedImageFile = File(pickedFile.path);
-          _uploadedAvatarUrl = null; // Reset uploaded URL
+          _uploadedAvatarUrl = null; 
         });
 
-        // Tự động upload ngay sau khi chọn ảnh
         await _uploadAvatar();
       }
     } catch (e) {
@@ -165,23 +157,21 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
     }
   }
 
-  // THÊM MỚI: Method để upload avatar
   Future<void> _uploadAvatar() async {
     if (_selectedImageFile == null) return;
 
     setState(() {
-      _isSaving = true; // Dùng flag _isSaving để hiển thị loading
+      _isSaving = true; 
     });
 
     try {
       final avatarUrl = await _apiService.uploadAvatar(_selectedImageFile!);
       
-      // Cập nhật avatar URL và user trong AuthProvider
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.updateCurrentUserInfo(
-        fullName: null, // Không thay đổi
-        phoneNumber: null, // Không thay đổi
-        avatarUrl: avatarUrl, // <-- Cần thêm parameter này vào updateCurrentUserInfo
+        fullName: null, 
+        phoneNumber: null, 
+        avatarUrl: avatarUrl, 
       );
 
       if (mounted) {
@@ -217,14 +207,12 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         final user = authProvider.user;
-        // Ưu tiên hiển thị avatar đã upload, sau đó là avatar từ user
         final displayAvatarUrl = _uploadedAvatarUrl ?? user?.avatarUrl;
 
         return Scaffold(
           appBar: AppBar(
             title: const Text("Chỉnh sửa tài khoản"),
             actions: [
-              // Nút Lưu
               if (_isSaving)
                 const Padding(
                   padding: EdgeInsets.all(16.0),
@@ -249,10 +237,8 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
                     key: _formKey,
                     child: Column(
                       children: [
-                        // --- PHẦN CHỈNH SỬA AVATAR (CẬP NHẬT) ---
                         Stack(
                           children: [
-                            // Hiển thị ảnh đã chọn hoặc avatar hiện tại
                             _selectedImageFile != null
                                 ? CircleAvatar(
                                     radius: 60,
@@ -270,7 +256,7 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
                                 backgroundColor: Theme.of(context).primaryColor,
                                 child: IconButton(
                                   icon: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
-                                  onPressed: _isSaving ? null : _pickImage, // <-- CẬP NHẬT
+                                  onPressed: _isSaving ? null : _pickImage, 
                                 ),
                               ),
                             )
@@ -285,7 +271,6 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
                         ],
                         const SizedBox(height: 32),
 
-                        // --- CÁC TRƯỜNG THÔNG TIN ---
                         TextFormField(
                           controller: _nameController,
                           decoration: const InputDecoration(
@@ -307,13 +292,12 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
                             prefixIcon: Icon(Icons.phone),
                             border: OutlineInputBorder(),
                           ),
-                          // Không bắt buộc
                         ),
                         const SizedBox(height: 20),
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          readOnly: true, // Thường email không cho sửa
+                          readOnly: true, 
                           decoration: InputDecoration(
                             labelText: "Email (Không thể sửa)",
                             prefixIcon: const Icon(Icons.email),

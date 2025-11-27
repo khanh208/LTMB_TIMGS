@@ -1,11 +1,10 @@
-// lib/features/profile/screens/saved_tutors_screen.dart
 
 import 'package:flutter/material.dart';
 import '../../profile/screens/tutor_profile_detail_screen.dart';
-import '../../../core/services/api_service.dart'; // <-- THÊM
-import '../../../core/models/tutor_model.dart'; // <-- THÊM
-import '../../../core/utils/error_handler.dart'; // <-- THÊM
-import '../../../core/widgets/avatar_widget.dart'; // <-- THÊM
+import '../../../core/services/api_service.dart'; 
+import '../../../core/models/tutor_model.dart'; 
+import '../../../core/utils/error_handler.dart'; 
+import '../../../core/widgets/avatar_widget.dart'; 
 
 class SavedTutorsScreen extends StatefulWidget {
   const SavedTutorsScreen({super.key});
@@ -16,7 +15,7 @@ class SavedTutorsScreen extends StatefulWidget {
 
 class _SavedTutorsScreenState extends State<SavedTutorsScreen> {
   final ApiService _apiService = ApiService();
-  List<TutorModel> _savedTutors = []; // <-- THAY ĐỔI: Dùng TutorModel
+  List<TutorModel> _savedTutors = []; 
   bool _isLoading = true;
   bool _hasError = false;
 
@@ -62,14 +61,14 @@ class _SavedTutorsScreenState extends State<SavedTutorsScreen> {
 
   Future<void> _removeFavorite(String tutorId) async {
     try {
-      await _apiService.toggleSavedTutor(tutorId, isSaved: true); // isSaved: true = remove
+      await _apiService.toggleSavedTutor(tutorId, isSaved: true); 
       
       if (mounted) {
         setState(() {
           _savedTutors.removeWhere((tutor) => tutor.userId == tutorId);
         });
         
-        ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Đã xóa khỏi danh sách đã lưu."),
             backgroundColor: Colors.green,
@@ -82,7 +81,7 @@ class _SavedTutorsScreenState extends State<SavedTutorsScreen> {
           context,
           e,
           onRetry: () => _removeFavorite(tutorId),
-        );
+    );
       }
     }
   }
@@ -104,7 +103,6 @@ class _SavedTutorsScreenState extends State<SavedTutorsScreen> {
     );
   }
 
-  // Widget khi danh sách rỗng
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -136,7 +134,6 @@ class _SavedTutorsScreenState extends State<SavedTutorsScreen> {
     );
   }
 
-  // Widget khi có danh sách
   Widget _buildTutorList() {
     return ListView.builder(
       padding: const EdgeInsets.all(8.0),

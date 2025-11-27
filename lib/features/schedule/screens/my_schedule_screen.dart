@@ -1,4 +1,3 @@
-// lib/features/schedule/screens/my_schedule_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; 
@@ -6,7 +5,7 @@ import 'package:table_calendar/table_calendar.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/utils/error_handler.dart';
-import '../models/schedule_event_model.dart';
+import '../../schedule/models/schedule_event_model.dart';
 import '../../../core/providers/navigation_provider.dart';
 
 class MyScheduleScreen extends StatefulWidget {
@@ -27,7 +26,6 @@ class _MyScheduleScreenState extends State<MyScheduleScreen> {
   bool _isLoading = true;
   bool _hasError = false;
 
-  // Map để lưu events cho calendar (key: DateTime, value: List of event names)
   Map<DateTime, List<String>> _events = {};
 
   @override
@@ -52,7 +50,6 @@ class _MyScheduleScreenState extends State<MyScheduleScreen> {
               .map((json) => ScheduleEventModel.fromJson(json))
               .toList();
 
-          // Tạo events map cho calendar
           _events = {};
           for (var schedule in _allSchedules) {
             final day = DateTime.utc(
@@ -79,7 +76,6 @@ class _MyScheduleScreenState extends State<MyScheduleScreen> {
           _events = {};
         });
 
-        // Hiển thị popup thông báo lỗi
         ErrorHandler.showErrorDialogFromException(
           context,
           e,
@@ -114,17 +110,15 @@ class _MyScheduleScreenState extends State<MyScheduleScreen> {
       builder: (context, authProvider, child) {
         final userRole = authProvider.userRole ?? 'student';
         
-        // Listen NavigationProvider để chọn ngày khi navigate từ Dashboard
         return Consumer<NavigationProvider>(
           builder: (context, navProvider, child) {
-            // Nếu có target date, chọn ngày đó
             if (navProvider.targetDate != null) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 setState(() {
                   _selectedDay = navProvider.targetDate;
                   _focusedDay = navProvider.targetDate!;
                 });
-                navProvider.clearTarget(); // Clear sau khi đã chọn
+                navProvider.clearTarget(); 
               });
             }
             
@@ -134,7 +128,9 @@ class _MyScheduleScreenState extends State<MyScheduleScreen> {
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.refresh),
-                    onPressed: _loadSchedules,
+                    onPressed: () {
+                      _loadSchedules();
+                    },
                   ),
                 ],
               ),
@@ -142,53 +138,60 @@ class _MyScheduleScreenState extends State<MyScheduleScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : Column(
                       children: [
-                        TableCalendar(
-                          locale: 'vi_VN',
-                          firstDay: DateTime.utc(2020, 1, 1),
-                          lastDay: DateTime.utc(2030, 12, 31),
-                          focusedDay: _focusedDay,
-                          calendarFormat: _calendarFormat,
-                          selectedDayPredicate: (day) {
-                            return isSameDay(_selectedDay, day);
-                          },
-                          onDaySelected: (selectedDay, focusedDay) {
-                            setState(() {
-                              _selectedDay = selectedDay;
-                              _focusedDay = focusedDay;
-                            });
-                          },
-                          onFormatChanged: (format) {
-                            setState(() {
-                              _calendarFormat = format;
-                            });
-                          },
-                          onPageChanged: (focusedDay) {
-                            setState(() {
-                              _focusedDay = focusedDay;
-                            });
-                          },
-                          eventLoader: _getEventsForDay,
-                          calendarStyle: const CalendarStyle(
-                            markersMaxCount: 1,
-                            markerDecoration: BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
                         
-                        const Divider(height: 1),
-                        const SizedBox(height: 16),
-
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Text(
-                            "Lịch học ngày ${_selectedDay?.day}/${_selectedDay?.month}",
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                        ),
                         Expanded(
-                          child: _buildAgendaList(userRole),
+                          child: Column(
+                            children: [
+                              TableCalendar(
+                                locale: 'vi_VN',
+                                firstDay: DateTime.utc(2020, 1, 1),
+                                lastDay: DateTime.utc(2030, 12, 31),
+                                focusedDay: _focusedDay,
+                                calendarFormat: _calendarFormat,
+                                selectedDayPredicate: (day) {
+                                  return isSameDay(_selectedDay, day);
+                                },
+                                onDaySelected: (selectedDay, focusedDay) {
+                                  setState(() {
+                                    _selectedDay = selectedDay;
+                                    _focusedDay = focusedDay;
+                                  });
+                                },
+                                onFormatChanged: (format) {
+                                  setState(() {
+                                    _calendarFormat = format;
+                                  });
+                                },
+                                onPageChanged: (focusedDay) {
+                                  setState(() {
+                                    _focusedDay = focusedDay;
+                                  });
+                                },
+                                eventLoader: _getEventsForDay,
+                                calendarStyle: const CalendarStyle(
+                                  markersMaxCount: 1,
+                                  markerDecoration: BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                              
+                              const Divider(height: 1),
+                              const SizedBox(height: 16),
+
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                child: Text(
+                                  "Lịch học ngày ${_selectedDay?.day}/${_selectedDay?.month}",
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              Expanded(
+                                child: _buildAgendaList(userRole),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -224,7 +227,6 @@ class _MyScheduleScreenState extends State<MyScheduleScreen> {
   }
 }
 
-// --- WIDGET THẺ BUỔI HỌC (SESSION CARD) ---
 class _SessionCard extends StatelessWidget {
   final ScheduleEventModel schedule;
   final String userRole;
@@ -238,6 +240,8 @@ class _SessionCard extends StatelessWidget {
     switch (status) {
       case 'pending':
         return 'Chờ xác nhận';
+      case 'pending_payment':
+        return 'Chờ thanh toán';
       case 'confirmed':
         return 'Đã xác nhận';
       case 'completed':
@@ -253,6 +257,8 @@ class _SessionCard extends StatelessWidget {
     switch (status) {
       case 'pending':
         return Colors.orange;
+      case 'pending_payment':
+        return Colors.deepOrange;
       case 'confirmed':
         return Colors.green;
       case 'completed':
@@ -276,7 +282,6 @@ class _SessionCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
-          // (Điều hướng đến màn hình Chi tiết Buổi học)
         },
         child: Padding(
           padding: const EdgeInsets.all(16.0),

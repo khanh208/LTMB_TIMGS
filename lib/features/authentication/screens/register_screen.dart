@@ -1,9 +1,8 @@
-// lib/features/authentication/screens/register_screen.dart
 
 import 'package:flutter/material.dart';
 import '../../../core/services/api_service.dart';
-import '../widgets/role_selection_screen.dart'; // Import widget chọn vai trò
-import '../../../core/utils/error_handler.dart'; // <-- THÊM
+import '../widgets/role_selection_screen.dart'; 
+import '../../../core/utils/error_handler.dart'; 
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,10 +15,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final ApiService _apiService = ApiService();
   bool _isLoading = false;
   
-  String? _selectedRole; // 'student' hoặc 'tutor'
-  bool _showRoleSelection = true; // Bắt đầu bằng việc chọn vai trò
+  String? _selectedRole; 
+  bool _showRoleSelection = true; 
 
-  // State cho Bước 2: Điền thông tin
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -35,15 +33,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  // --- Hàm xử lý Đăng ký ---
   void _register() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
-        _isLoading = true; // Bật vòng xoay loading
+        _isLoading = true; 
       });
 
       try {
-        // Gọi API
         final result = await _apiService.register(
           _emailController.text.trim(),
           _passwordController.text.trim(),
@@ -51,18 +47,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _selectedRole!,
         );
 
-        // Đăng ký thành công
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(result['message'] ?? 'Đăng ký thành công!'),
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pushReplacementNamed(context, '/login'); // Quay về login
+        Navigator.pushReplacementNamed(context, '/login'); 
 
       } catch (e) {
-        // Đăng ký thất bại
-        // Hiển thị popup thông báo lỗi
         ErrorHandler.showErrorDialogFromException(
           context,
           e,
@@ -70,7 +63,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
       } finally {
         setState(() {
-          _isLoading = false; // Tắt vòng xoay loading
+          _isLoading = false; 
         });
       }
     }
@@ -82,12 +75,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       appBar: AppBar(
         title: Text(_showRoleSelection ? "Chọn vai trò của bạn" : "Đăng ký tài khoản"),
         leading: _showRoleSelection
-            ? null // Ẩn nút back ở bước 1
+            ? null 
             : IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
                   setState(() {
-                    _showRoleSelection = true; // Quay lại bước chọn vai trò
+                    _showRoleSelection = true; 
                   });
                 },
               ),
@@ -99,7 +92,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // --- Widget cho Bước 1: Chọn vai trò ---
   Widget _buildRoleSelectionStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,7 +142,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ? null
                 : () {
                     setState(() {
-                      _showRoleSelection = false; // Chuyển sang bước điền form
+                      _showRoleSelection = false; 
                     });
                   },
             style: ElevatedButton.styleFrom(
@@ -165,7 +157,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // --- Widget cho Bước 2: Điền form đăng ký ---
   Widget _buildRegistrationFormStep() {
     return Form(
       key: _formKey,
@@ -228,7 +219,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              // Nếu đang loading thì disable nút
               onPressed: _isLoading ? null : _register,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).primaryColor,
@@ -236,7 +226,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
               child: _isLoading 
-                  ? const CircularProgressIndicator(color: Colors.white) // Vòng xoay
+                  ? const CircularProgressIndicator(color: Colors.white) 
                   : const Text("Đăng ký", style: TextStyle(fontSize: 18)),
             ),
           ),

@@ -1,4 +1,3 @@
-// lib/features/earnings/screens/earnings_screen.dart
 
 import 'package:flutter/material.dart';
 
@@ -7,20 +6,17 @@ class EarningsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Sử dụng DefaultTabController để quản lý Tab "Lịch sử"
     return DefaultTabController(
-      length: 2, // 2 Tab: Đã nhận, Đã rút
+      length: 2, 
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Quản lý Thu nhập"),
         ),
         body: Column(
           children: [
-            // 1. Thẻ Số dư & Nút Rút tiền
             _buildBalanceCard(context),
             const SizedBox(height: 24),
             
-            // 2. Tab Lịch sử Giao dịch
             const TabBar(
               tabs: [
                 Tab(text: "Tiền đã nhận"),
@@ -28,13 +24,10 @@ class EarningsScreen extends StatelessWidget {
               ],
             ),
             
-            // 3. Danh sách Giao dịch
             Expanded(
               child: TabBarView(
                 children: [
-                  // Tab 1: Đã nhận
                   _buildTransactionList(isReceived: true),
-                  // Tab 2: Đã rút
                   _buildTransactionList(isReceived: false),
                 ],
               ),
@@ -45,7 +38,6 @@ class EarningsScreen extends StatelessWidget {
     );
   }
 
-  // --- Widget Thẻ Số dư ---
   Widget _buildBalanceCard(BuildContext context) {
     return Container(
       width: double.infinity,
@@ -71,7 +63,7 @@ class EarningsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            "5,200,000 VND", // (Dữ liệu giả)
+            "5,200,000 VND", 
             style: TextStyle(
               color: Colors.white,
               fontSize: 32,
@@ -80,14 +72,14 @@ class EarningsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           const Text(
-            "Số tiền đang chờ: 1,200,000 VND", // (Tiền từ buổi học chưa hoàn tất)
+            "Số tiền đang chờ: 1,200,000 VND", 
             style: TextStyle(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              onPressed: () { /* (Mở popup/màn hình Rút tiền) */ },
+              onPressed: () {  },
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.white,
                 side: const BorderSide(color: Colors.white),
@@ -101,9 +93,7 @@ class EarningsScreen extends StatelessWidget {
     );
   }
 
-  // --- Widget Danh sách Giao dịch ---
   Widget _buildTransactionList({required bool isReceived}) {
-    // (Dữ liệu giả)
     final items = isReceived
         ? [
             {'title': 'Thanh toán buổi học (Học viên: Lê Văn A)', 'amount': '+ 300,000'},
@@ -124,7 +114,7 @@ class EarningsScreen extends StatelessWidget {
             color: isReceived ? Colors.green : Colors.red,
           ),
           title: Text(item['title']!),
-          subtitle: const Text("10:30, 07/11/2025"), // (Dữ liệu giả)
+          subtitle: const Text("10:30, 07/11/2025"), 
           trailing: Text(
             item['amount']!,
             style: TextStyle(

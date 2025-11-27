@@ -1,5 +1,3 @@
-  // lib/features/profile/screens/notification_settings_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/auth_provider.dart';

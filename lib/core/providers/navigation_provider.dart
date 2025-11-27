@@ -7,13 +7,11 @@ class NavigationProvider extends ChangeNotifier {
   int? get targetTabIndex => _targetTabIndex;
   DateTime? get targetDate => _targetDate;
 
-  // Method để Dashboard gọi khi muốn navigate đến tab Lịch học
   void navigateToScheduleTab({DateTime? selectDate}) {
-    _targetTabIndex = 1; // Index của tab Lịch học (Dashboard=0, Schedule=1, Chat=2, Profile=3)
+    _targetTabIndex = 1;
     _targetDate = selectDate;
     notifyListeners();
     
-    // Reset sau khi notify
     Future.delayed(const Duration(milliseconds: 100), () {
       _targetTabIndex = null;
       _targetDate = null;

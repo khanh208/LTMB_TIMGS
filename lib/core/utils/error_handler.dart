@@ -5,11 +5,9 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 
 class ErrorHandler {
-  // Phân loại lỗi và trả về message thân thiện
   static String getFriendlyErrorMessage(dynamic error) {
     final errorString = error.toString().toLowerCase();
     debugPrint('ErrorHandler: $errorString'); 
-    // Lỗi mạng / không có internet
     if (error is SocketException || 
         errorString.contains('socket') ||
         errorString.contains('network') ||
@@ -19,13 +17,11 @@ class ErrorHandler {
       return 'Không có kết nối internet. Vui lòng kiểm tra kết nối mạng của bạn.';
     }
     
-    // Lỗi timeout
     if (error.toString().contains('timeout') || 
         errorString.contains('408')) {
       return 'Kết nối quá lâu. Vui lòng thử lại sau.';
     }
     
-    // Lỗi server (500, 502, 503, 504)
     if (errorString.contains('[500]') ||
         errorString.contains('[502]') ||
         errorString.contains('[503]') ||
@@ -33,32 +29,26 @@ class ErrorHandler {
       return 'Máy chủ đang gặp sự cố. Vui lòng thử lại sau.';
     }
     
-    // Lỗi không tìm thấy (404)
     if (errorString.contains('[404]')) {
       return 'Không tìm thấy thông tin. Vui lòng thử lại.';
     }
     
-    // Lỗi xác thực (401, 403)
     if (errorString.contains('[401]') || errorString.contains('[403]')) {
       return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
     }
     
-    // Lỗi dữ liệu không hợp lệ (400, 422)
     if (errorString.contains('[400]') || errorString.contains('[422]')) {
       return 'Thông tin không hợp lệ. Vui lòng kiểm tra lại.';
     }
     
-    // Lỗi format JSON
     if (error.toString().contains('FormatException') ||
         errorString.contains('json')) {
       return 'Dữ liệu không đúng định dạng. Vui lòng thử lại.';
     }
     
-    // Lỗi mặc định
     return 'Đã xảy ra lỗi. Vui lòng thử lại sau.';
   }
   
-  // Hiển thị dialog thông báo lỗi với nút "Thử lại"
   static Future<void> showErrorDialog(
     BuildContext context, {
     required String message,
@@ -113,7 +103,6 @@ class ErrorHandler {
     );
   }
   
-  // Hiển thị error dialog từ exception
   static Future<void> showErrorDialogFromException(
     BuildContext context,
     dynamic error, {

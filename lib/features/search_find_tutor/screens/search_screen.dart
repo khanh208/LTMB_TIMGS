@@ -1,4 +1,3 @@
-// lib/features/search_find_tutor/screens/search_screen.dart
 
 import 'package:flutter/material.dart';
 import '../../profile/screens/tutor_profile_detail_screen.dart';
@@ -20,15 +19,10 @@ class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ApiService _apiService = ApiService();
 
-  // --- STATE CHO BỘ LỌC ---
   final Set<String> _selectedQuickFilters = {};
   
-  // 1. State mới: Bộ lọc nâng cao có đang được áp dụng không?
   bool _isAdvancedFilterActive = false;
-  // (Bạn có thể dùng state này để hiển thị các chip lọc nâng cao đã chọn)
-  // Map<String, Set<String>> _advancedFilters = {};
 
-  // --- STATE CHO DỮ LIỆU ---
   List<TutorModel> _tutors = [];
   bool _isLoading = false;
   String? _error;
@@ -87,9 +81,7 @@ class _SearchScreenState extends State<SearchScreen> {
     _loadTutors();
   }
 
-  // --- HÀM MỞ POPUP LỌC NÂNG CAO (ĐÃ CẬP NHẬT) ---
   void _showAdvancedFilter(BuildContext context) async {
-    // Chờ kết quả trả về (true) từ popup
     final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true, 
@@ -97,23 +89,19 @@ class _SearchScreenState extends State<SearchScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        // Không truyền categoryKey nữa, popup sẽ tự hiển thị tất cả
         return _AdvancedFilterContent();
       },
     );
 
-    // 2. Nếu người dùng bấm "Áp dụng" (popup trả về true)
     if (result == true) {
       setState(() {
-        _isAdvancedFilterActive = true; // Kích hoạt bộ lọc nâng cao
-        _selectedQuickFilters.clear(); // Xóa các lựa chọn ở lọc nhanh
-        // (Bạn sẽ gọi API lọc lại danh sách với các filter nâng cao)
+        _isAdvancedFilterActive = true; 
+        _selectedQuickFilters.clear(); 
       });
-      _loadTutors(); // Reload với filter mới
+      _loadTutors(); 
     }
   }
 
-  // --- HÀM BUILD THANH LỌC NHANH (ĐÃ CẬP NHẬT) ---
   Widget _buildQuickFilterBar() {
     final Map<String, String> quickFilters = {
       'gan_toi': 'Gần tôi',
@@ -122,11 +110,10 @@ class _SearchScreenState extends State<SearchScreen> {
       'online': 'Dạy Online',
     };
 
-    // 3. Vô hiệu hóa và làm mờ nếu Lọc Nâng cao đang active
     return IgnorePointer(
-      ignoring: _isAdvancedFilterActive, // Vô hiệu hóa (disable)
+      ignoring: _isAdvancedFilterActive, 
       child: Opacity(
-        opacity: _isAdvancedFilterActive ? 0.4 : 1.0, // Làm mờ
+        opacity: _isAdvancedFilterActive ? 0.4 : 1.0, 
         child: Container(
           height: 50, 
           padding: const EdgeInsets.symmetric(vertical: 4),
@@ -154,9 +141,8 @@ class _SearchScreenState extends State<SearchScreen> {
                     } else {
                       _selectedQuickFilters.remove(key);
                     }
-                    // (Gọi API lọc lại danh sách)
                   });
-                  _loadTutors(); // Reload khi filter thay đổi
+                  _loadTutors(); 
                 },
                 selectedColor: Theme.of(context).primaryColor.withOpacity(0.1),
                 labelStyle: TextStyle(
@@ -194,13 +180,11 @@ class _SearchScreenState extends State<SearchScreen> {
           onSubmitted: (_) => _performSearch(),
         ),
         actions: [
-          // 4. Thêm nút "Reset" nếu lọc nâng cao đang bật
           if (_isAdvancedFilterActive)
             TextButton(
               onPressed: () {
                 setState(() {
-                  _isAdvancedFilterActive = false; // Tắt lọc nâng cao
-                  // (Gọi API tải lại danh sách gốc)
+                  _isAdvancedFilterActive = false; 
                 });
                 _loadTutors();
               },
@@ -247,7 +231,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           )
                         : ListView.builder(
                             itemCount: _tutors.length,
-                            itemBuilder: (context, index) {
+              itemBuilder: (context, index) {
                               final tutor = _tutors[index];
                               return ListTile(
                                 leading: AvatarWidget(
@@ -279,18 +263,18 @@ class _SearchScreenState extends State<SearchScreen> {
                                     ),
                                   ],
                                 ),
-                                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                          trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
                                 onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
                                       builder: (context) => TutorProfileDetailScreen(tutorId: tutor.userId),
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                          ),
+                              ),
+                            );
+                          },
+                        );
+              },
+            ),
           ),
         ],
       ),
@@ -298,7 +282,6 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 }
 
-// --- WIDGET NỘI DUNG CHO POPUP LỌC NÂNG CAO (ĐÃ CẬP NHẬT) ---
 class _AdvancedFilterContent extends StatefulWidget {
   const _AdvancedFilterContent();
 
@@ -307,16 +290,12 @@ class _AdvancedFilterContent extends StatefulWidget {
 }
 
 class _AdvancedFilterContentState extends State<_AdvancedFilterContent> {
-  // --- State cho TẤT CẢ các danh mục lọc ---
   final Set<String> _selectedTrinhDo = {};
   final Set<String> _selectedMonHoc = {};
   final Set<String> _selectedKhuVuc = {};
   
-  // --- THÊM STATE CHO KỸ NĂNG MỀM ---
   final Set<String> _selectedKyNangMem = {};
-  // ------------------------------------
 
-  // (Hàm _buildFilterSection giữ nguyên)
   Widget _buildFilterSection(
       {required String title,
       required Map<String, String> options,
@@ -367,7 +346,7 @@ class _AdvancedFilterContentState extends State<_AdvancedFilterContent> {
                 );
               }).toList(),
             ),
-            const Divider(height: 32), // Phân cách các mục
+            const Divider(height: 32), 
           ],
         );
       }
@@ -382,7 +361,6 @@ class _AdvancedFilterContentState extends State<_AdvancedFilterContent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Tiêu đề và nút Đóng
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -396,13 +374,11 @@ class _AdvancedFilterContentState extends State<_AdvancedFilterContent> {
           const Divider(),
           const SizedBox(height: 16),
           
-          // --- NỘI DUNG LỌC (CUỘN ĐƯỢC) ---
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // DANH MỤC 1: TRÌNH ĐỘ
                   _buildFilterSection(
                     title: "Trình độ",
                     options: {
@@ -415,7 +391,6 @@ class _AdvancedFilterContentState extends State<_AdvancedFilterContent> {
                     selectedItems: _selectedTrinhDo,
                   ),
 
-                  // DANH MỤC 2: MÔN HỌC
                   _buildFilterSection(
                     title: "Môn học",
                     options: {
@@ -431,7 +406,6 @@ class _AdvancedFilterContentState extends State<_AdvancedFilterContent> {
                     selectedItems: _selectedMonHoc,
                   ),
 
-                  // --- THÊM DANH MỤC KỸ NĂNG MỀM ---
                   _buildFilterSection(
                     title: "Kỹ năng mềm",
                     options: {
@@ -444,15 +418,12 @@ class _AdvancedFilterContentState extends State<_AdvancedFilterContent> {
                     },
                     selectedItems: _selectedKyNangMem,
                   ),
-                  // ------------------------------------
 
-                  // DANH MỤC 4: KHU VỰC
                   _buildFilterSection(
                     title: "Khu vực",
                     options: {
                       'q1': 'Quận 1',
                       'q2': 'Quận 2',
-                      // (Thêm các quận khác ở đây)
                     },
                     selectedItems: _selectedKhuVuc,
                   ),
@@ -461,7 +432,6 @@ class _AdvancedFilterContentState extends State<_AdvancedFilterContent> {
             ),
           ),
           
-          // Nút Reset và Áp dụng
           Row(
             children: [
               Expanded(
@@ -471,9 +441,7 @@ class _AdvancedFilterContentState extends State<_AdvancedFilterContent> {
                       _selectedTrinhDo.clear();
                       _selectedMonHoc.clear();
                       _selectedKhuVuc.clear();
-                      // --- THÊM VÀO NÚT RESET ---
                       _selectedKyNangMem.clear();
-                      // -------------------------
                     });
                   },
                   style: OutlinedButton.styleFrom(
@@ -486,8 +454,6 @@ class _AdvancedFilterContentState extends State<_AdvancedFilterContent> {
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    // (Bạn sẽ xử lý logic áp dụng lọc ở đây, 
-                    // ví dụ: gửi các Set<> đã chọn về SearchScreen)
                     Navigator.pop(context, true); 
                   },
                   style: ElevatedButton.styleFrom(

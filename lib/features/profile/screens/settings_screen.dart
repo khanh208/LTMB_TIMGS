@@ -1,4 +1,3 @@
-// lib/features/profile/screens/settings_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; 
 import '../../../core/providers/auth_provider.dart'; 
@@ -30,7 +29,6 @@ class SettingsScreen extends StatelessWidget {
                   },
                 ),
                 
-                // Chỉ Gia sư mới thấy mục này
                 if (userRole == 'tutor')
                   ListTile(
                     leading: const Icon(Icons.edit_note_outlined),
@@ -67,13 +65,13 @@ class SettingsScreen extends StatelessWidget {
                   leading: const Icon(Icons.help_outline),
                   title: const Text("Trợ giúp & Phản hồi"),
                   trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-                  onTap: () { /* Điều hướng */ },
+                  onTap: () {  },
                 ),
                 ListTile(
                   leading: const Icon(Icons.info_outline),
                   title: const Text("Về ứng dụng"),
                   trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-                  onTap: () { /* Điều hướng */ },
+                  onTap: () {  },
                 ),
               ],
             ),

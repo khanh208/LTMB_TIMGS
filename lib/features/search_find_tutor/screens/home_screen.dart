@@ -1,14 +1,18 @@
-// lib/features/search_find_tutor/screens/home_screen.dart
 
 import 'package:flutter/material.dart';
 import 'search_screen.dart';
+import 'dart:math';
 import '../../profile/screens/tutor_profile_detail_screen.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/models/tutor_model.dart';
 import '../../../core/utils/error_handler.dart';
-import 'dart:io'; // <-- THÊM
-import 'dart:convert'; // <-- Đã có rồi
-import '../../../core/widgets/avatar_image_helper.dart'; // <-- THÊM
+import 'dart:io'; 
+import 'dart:convert'; 
+import '../../../core/widgets/avatar_image_helper.dart'; 
+import 'package:provider/provider.dart'; 
+import '../../../core/providers/auth_provider.dart'; 
+import '../../schedule/models/schedule_event_model.dart'; 
+import '../../schedule/screens/proposal_detail_screen.dart'; 
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,13 +22,15 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Keys để reload từng section
   final Map<String, GlobalKey<_HomeSectionState>> _sectionKeys = {};
+
+  Map<String, List<ScheduleEventModel>> _pendingPaymentProposals = {};
+  bool _isLoadingProposals = false;
+  final ApiService _apiService = ApiService(); 
 
   @override
   void initState() {
     super.initState();
-    // Tạo keys cho các sections
     _sectionKeys['recommended'] = GlobalKey<_HomeSectionState>();
     _sectionKeys['rankings'] = GlobalKey<_HomeSectionState>();
     _sectionKeys['top_rated'] = GlobalKey<_HomeSectionState>();
@@ -35,9 +41,10 @@ class _HomeScreenState extends State<HomeScreen> {
     _sectionKeys['ky_nang_mem'] = GlobalKey<_HomeSectionState>();
     _sectionKeys['pho_thong'] = GlobalKey<_HomeSectionState>();
     _sectionKeys['tieu_hoc'] = GlobalKey<_HomeSectionState>();
+    
+    _loadPendingPaymentProposals();
   }
 
-  // --- Hàm điều hướng ---
   void _navigateToSearch(BuildContext context, {String? categoryKey}) {
     Navigator.push(
       context,
@@ -47,7 +54,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- Hàm Build Thanh Tìm kiếm ---
   Widget _buildFakeSearchBar(BuildContext context) {
     return InkWell(
       onTap: () {
@@ -74,117 +80,343 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Hàm reload tất cả sections
   Future<void> _refreshAllSections() async {
-    // Reload tất cả các sections
+    _loadPendingPaymentProposals();
+    
     for (var key in _sectionKeys.values) {
       key.currentState?.reload();
     }
-    // Đợi một chút để các API calls hoàn thành
     await Future.delayed(const Duration(milliseconds: 500));
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _refreshAllSections,
-          displacement: 20, // <-- THÊM: Giảm khoảng cách
-          child: SingleChildScrollView(
-            physics: const ClampingScrollPhysics( // <-- THAY ĐỔI: Từ AlwaysScrollableScrollPhysics
-              parent: AlwaysScrollableScrollPhysics(), // <-- Cho phép scroll luôn
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+  Future<void> _loadPendingPaymentProposals() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userRole = authProvider.userRole;
+    
+    if (userRole != 'student') return;
+
+    setState(() {
+      _isLoadingProposals = true;
+    });
+
+    try {
+      final schedulesData = await _apiService.getSchedules();
+      
+      debugPrint('📋 [Home] Total schedules from API: ${schedulesData.length}');
+      
+      if (mounted) {
+        final pendingPaymentSchedules = schedulesData
+            .map((json) => ScheduleEventModel.fromJson(json))
+            .where((schedule) => schedule.status == 'pending_payment')
+            .toList();
+
+        debugPrint('📋 [Home] Pending payment schedules count: ${pendingPaymentSchedules.length}');
+
+        final Map<String, List<ScheduleEventModel>> groupedProposals = {};
+        for (var schedule in pendingPaymentSchedules) {
+          final groupId = schedule.bookingGroupId ?? 'unknown_${schedule.scheduleId}';
+          if (!groupedProposals.containsKey(groupId)) {
+            groupedProposals[groupId] = [];
+          }
+          groupedProposals[groupId]!.add(schedule);
+        }
+
+        debugPrint('📋 [Home] Grouped proposals count: ${groupedProposals.length}');
+
+        setState(() {
+          _pendingPaymentProposals = groupedProposals;
+          _isLoadingProposals = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ [Home] Error loading pending proposals: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingProposals = false;
+        });
+      }
+    }
+  }
+
+  void _navigateToProposalDetail(ScheduleEventModel schedule) {
+    if (schedule.bookingGroupId == null || schedule.bookingGroupId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không tìm thấy thông tin đề xuất'),
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProposalDetailScreen(
+          groupId: schedule.bookingGroupId!,
+        ),
+      ),
+    ).then((reload) {
+      if (reload == true) {
+        _loadPendingPaymentProposals();
+      }
+    });
+  }
+
+  Widget _buildPendingPaymentSection() {
+    if (_isLoadingProposals) {
+      return Container(
+        color: Colors.orange.shade50,
+        padding: const EdgeInsets.all(16),
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_pendingPaymentProposals.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      color: Colors.orange.shade50,
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
               children: [
-                // 1. Thanh tìm kiếm
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: _buildFakeSearchBar(context),
+                const Icon(Icons.payment, color: Colors.orange, size: 24),
+                const SizedBox(width: 8),
+                const Text(
+                  'Đề xuất chờ thanh toán',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
+                  ),
                 ),
-                
-                // 2. Danh sách sections
-                _HomeSection(
-                  key: _sectionKeys['recommended'],
-                  title: "Đề xuất cho bạn",
-                  categoryKey: null,
-                  onSeeMorePressed: (category) => _navigateToSearch(context, categoryKey: category),
-                ),
-
-                _HomeSection(
-                  key: _sectionKeys['rankings'],
-                  title: "Bảng xếp hạng Gia sư",
-                  categoryKey: null,
-                  onSeeMorePressed: (category) => _navigateToSearch(context, categoryKey: category),
-                ),
-
-                _HomeSection(
-                  key: _sectionKeys['top_rated'],
-                  title: "Gia sư Đánh giá cao",
-                  categoryKey: null,
-                  onSeeMorePressed: (category) => _navigateToSearch(context, categoryKey: category),
-                ),
-
-                _HomeSection(
-                  key: _sectionKeys['popular'],
-                  title: "Nhiều lượt đăng ký",
-                  categoryKey: null,
-                  onSeeMorePressed: (category) => _navigateToSearch(context, categoryKey: category),
-                ),
-                
-                _HomeSection(
-                  key: _sectionKeys['new'],
-                  title: "Mới trên MentorMatch",
-                  categoryKey: null,
-                  onSeeMorePressed: (category) => _navigateToSearch(context, categoryKey: category),
-                ),
-
-                _HomeSection(
-                  key: _sectionKeys['tin_hoc'],
-                  title: "Gia sư Tin học",
-                  categoryKey: "tin_hoc",
-                  onSeeMorePressed: (category) => _navigateToSearch(context, categoryKey: category),
-                ),
-
-                _HomeSection(
-                  key: _sectionKeys['ngoai_ngu'],
-                  title: "Gia sư Ngoại ngữ",
-                  categoryKey: "ngoai_ngu",
-                  onSeeMorePressed: (category) => _navigateToSearch(context, categoryKey: category),
-                ),
-
-                _HomeSection(
-                  key: _sectionKeys['ky_nang_mem'],
-                  title: "Kỹ năng mềm",
-                  categoryKey: "ky_nang_mem",
-                  onSeeMorePressed: (category) => _navigateToSearch(context, categoryKey: category),
-                ),
-
-                _HomeSection(
-                  key: _sectionKeys['pho_thong'],
-                  title: "Gia sư Phổ thông",
-                  categoryKey: "pho_thong",
-                  onSeeMorePressed: (category) => _navigateToSearch(context, categoryKey: category),
-                ),
-
-                _HomeSection(
-                  key: _sectionKeys['tieu_hoc'],
-                  title: "Gia sư Tiểu học",
-                  categoryKey: "tieu_hoc",
-                  onSeeMorePressed: (category) => _navigateToSearch(context, categoryKey: category),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.orange,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    '${_pendingPaymentProposals.length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-        ),
+          ...(_pendingPaymentProposals.entries.take(3).map((entry) {
+            final schedules = entry.value;
+            final firstSchedule = schedules.first;
+            final totalSlots = schedules.length;
+
+            return Card(
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              elevation: 2,
+              child: InkWell(
+                onTap: () {
+                  _navigateToProposalDetail(firstSchedule);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  firstSchedule.subjectName,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Gia sư: ${firstSchedule.tutorName}',
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '$totalSlots buổi',
+                              style: const TextStyle(
+                                color: Colors.orange,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ...(schedules.take(3).map((schedule) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${schedule.formattedDate} - ${schedule.formattedTime}',
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        );
+                      })),
+                      if (schedules.length > 3)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'và ${schedules.length - 3} buổi khác...',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            _navigateToProposalDetail(firstSchedule);
+                          },
+                          icon: const Icon(Icons.payment, size: 18),
+                          label: const Text('Xem chi tiết & Thanh toán'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          })),
+          if (_pendingPaymentProposals.length > 3)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Center(
+                child: TextButton(
+                  onPressed: () {
+                  },
+                  child: Text(
+                    'Xem tất cả (${_pendingPaymentProposals.length} đề xuất)',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        final userRole = authProvider.userRole ?? 'student';
+        
+        return Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
+            child: RefreshIndicator(
+              onRefresh: _refreshAllSections,
+              displacement: 20,
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: _buildFakeSearchBar(context),
+                    ),
+                    
+                    if (userRole == 'student')
+                      _buildPendingPaymentSection(),
+                    
+                    _HomeSection(
+                      key: _sectionKeys['recommended'],
+                      title: "Đề xuất cho bạn",
+                      categoryKey: null,
+                      onSeeMorePressed: (category) => _navigateToSearch(context, categoryKey: category),
+                    ),
+                    _HomeSection(
+                      key: _sectionKeys['top_rated'],
+                      title: "Gia sư Đánh giá cao",
+                      categoryKey: null,
+                      onSeeMorePressed: (category) => _navigateToSearch(context, categoryKey: category),
+                    ),
+                    _HomeSection(
+                      key: _sectionKeys['popular'],
+                      title: "Nhiều lượt đăng ký",
+                      categoryKey: null,
+                      onSeeMorePressed: (category) => _navigateToSearch(context, categoryKey: category),
+                    ),
+                    _HomeSection(
+                      key: _sectionKeys['new'],
+                      title: "Mới trên MentorMatch",
+                      categoryKey: null,
+                      onSeeMorePressed: (category) => _navigateToSearch(context, categoryKey: category),
+                    ),
+                    _HomeSection(
+                      key: _sectionKeys['ngoai_ngu'],
+                      title: "Gia sư Ngoại ngữ",
+                      categoryKey: "ngoai_ngu",
+                      onSeeMorePressed: (category) => _navigateToSearch(context, categoryKey: category),
+                    ),
+
+                    _HomeSection(
+                      key: _sectionKeys['ky_nang_mem'],
+                      title: "Kỹ năng mềm",
+                      categoryKey: "ky_nang_mem",
+                      onSeeMorePressed: (category) => _navigateToSearch(context, categoryKey: category),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
 
-// --- WIDGET CHO MỘT "MỤC LỚN" ---
 class _HomeSection extends StatefulWidget {
   final String title;
   final String? categoryKey;
@@ -205,7 +437,7 @@ class _HomeSectionState extends State<_HomeSection> {
   final ApiService _apiService = ApiService();
   List<TutorModel> _tutors = [];
   bool _isLoading = true;
-  bool _hasError = false; // <-- Đổi từ String? _error sang bool _hasError
+  bool _hasError = false; 
 
   @override
   void initState() {
@@ -220,25 +452,25 @@ class _HomeSectionState extends State<_HomeSection> {
     });
 
     try {
-      final tutorsData = await _apiService.getTutors(
-        category: widget.categoryKey,
-      );
-      
-      if (mounted) {
-        setState(() {
-          _tutors = tutorsData.map((json) => TutorModel.fromJson(json)).toList();
-          _isLoading = false;
-        });
-      }
+      final tutorsData = await _apiService.getTutors(category: widget.categoryKey);
+       if (!mounted) return;
+
+       final random = Random(); // có thể khai báo static để tái sử dụng
+       final tutors = tutorsData.map((json) => TutorModel.fromJson(json)).toList();
+       tutors.shuffle(random); // xáo trộn vị trí
+
+       setState(() {
+         _tutors = tutors;
+         _isLoading = false;
+       });
     } catch (e) {
       if (mounted) {
         setState(() {
           _hasError = true;
           _isLoading = false;
-          _tutors = []; // Hiển thị empty state
+          _tutors = []; 
         });
         
-        // Hiển thị popup thông báo lỗi
         ErrorHandler.showErrorDialogFromException(
           context,
           e,
@@ -248,7 +480,6 @@ class _HomeSectionState extends State<_HomeSection> {
     }
   }
 
-  // Method để reload từ bên ngoài (được gọi từ RefreshIndicator)
   void reload() {
     _loadTutors();
   }
@@ -258,7 +489,6 @@ class _HomeSectionState extends State<_HomeSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 1. Tiêu đề và Nút "Xem thêm"
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0).copyWith(bottom: 4),
           child: Row(
@@ -280,7 +510,6 @@ class _HomeSectionState extends State<_HomeSection> {
           ),
         ),
 
-        // 2. --- DANH SÁCH CUỘN NGANG (GRIDVIEW 2 HÀNG) ---
         SizedBox(
           height: 230,
           child: _isLoading
@@ -313,7 +542,6 @@ class _HomeSectionState extends State<_HomeSection> {
   }
 }
 
-// --- WIDGET CHO THẺ GIA SƯ THU NHỎ ---
 class _TutorCardMini extends StatelessWidget {
   final TutorModel tutor;
   
@@ -347,7 +575,6 @@ class _TutorCardMini extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: Row(
           children: [
-            // Ảnh (bên trái) - CẬP NHẬT
             Container(
               width: 80,
               height: double.infinity,
@@ -363,7 +590,6 @@ class _TutorCardMini extends StatelessWidget {
                   : const Icon(Icons.person, size: 40, color: Colors.grey),
             ),
             
-            // Thông tin (bên phải)
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(8.0),

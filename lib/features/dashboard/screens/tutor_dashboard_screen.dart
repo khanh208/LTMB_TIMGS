@@ -19,7 +19,6 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
   List<ScheduleEventModel> _upcomingSchedules = [];
   bool _isLoadingSchedules = false;
   
-  // THÊM MỚI: Reviews
   List<ReviewModel> _reviews = [];
   bool _isLoadingReviews = false;
 
@@ -27,7 +26,7 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
   void initState() {
     super.initState();
     _loadUpcomingSchedules();
-    _loadReviews(); // <-- THÊM MỚI
+    _loadReviews(); 
   }
 
   Future<void> _loadUpcomingSchedules() async {
@@ -39,7 +38,6 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
       final schedulesData = await _apiService.getSchedules();
       
       if (mounted) {
-        // Lọc và sắp xếp: chỉ lấy các schedule trong tương lai, sắp xếp theo thời gian
         final now = DateTime.now();
         final upcoming = schedulesData
             .map((json) => ScheduleEventModel.fromJson(json))
@@ -48,7 +46,7 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
           ..sort((a, b) => a.startTime.compareTo(b.startTime));
 
         setState(() {
-          _upcomingSchedules = upcoming.take(3).toList(); // Lấy tối đa 3 item
+          _upcomingSchedules = upcoming.take(3).toList(); 
           _isLoadingSchedules = false;
         });
       }
@@ -59,20 +57,17 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
           _upcomingSchedules = [];
         });
         
-        // Log error nhưng không hiển thị popup (vì đây là phần phụ)
         debugPrint('⚠️ [Dashboard] Error loading schedules: $e');
       }
     }
   }
 
-  // THÊM MỚI: Load reviews
   Future<void> _loadReviews() async {
     setState(() {
       _isLoadingReviews = true;
     });
 
     try {
-      // Lấy tutorId từ AuthProvider
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final tutorId = authProvider.user?.id;
       
@@ -92,7 +87,6 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
               .map((json) => ReviewModel.fromJson(json))
               .toList()
             ..sort((a, b) {
-              // Sắp xếp theo thời gian tạo (mới nhất trước)
               if (a.createdAt != null && b.createdAt != null) {
                 return b.createdAt!.compareTo(a.createdAt!);
               }
@@ -108,13 +102,11 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
           _reviews = [];
         });
         
-        // Log error nhưng không hiển thị popup (vì đây là phần phụ)
         debugPrint('⚠️ [Dashboard] Error loading reviews: $e');
       }
     }
   }
 
-  // --- Widget Mục Hồ sơ công khai (THÊM MỚI) ---
   Widget _buildPublicProfileSection(BuildContext context) {
     return Card(
       elevation: 2,
@@ -175,25 +167,22 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
     );
   }
 
-  // --- Widget Lưới Thống kê ---
   Widget _buildStatsGrid(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Tổng quan Tháng 11", // (Lấy tháng hiện tại)
+          "Tổng quan Tháng 11", 
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
-        // Dùng GridView để hiển thị 2 cột
         GridView.count(
-          crossAxisCount: 2, // 2 cột
-          shrinkWrap: true, // Để GridView không chiếm toàn bộ màn hình
-          physics: const NeverScrollableScrollPhysics(), // Tắt cuộn của GridView
+          crossAxisCount: 2, 
+          shrinkWrap: true, 
+          physics: const NeverScrollableScrollPhysics(), 
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
           children: [
-            // Card Doanh thu - CÓ THỂ CLICK
             GestureDetector(
               onTap: () {
                 Navigator.pushNamed(context, '/earnings_management');
@@ -219,7 +208,7 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
             ),
             _StatCard(
               title: "Tin nhắn Chờ",
-              value: "2", // Lấy từ tab Yêu cầu
+              value: "2", 
               icon: Icons.inbox,
               color: Colors.red,
             ),
@@ -229,7 +218,6 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
     );
   }
 
-  // --- Widget Lịch học Sắp tới (CẬP NHẬT) ---
   Widget _buildUpcomingSchedule(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,7 +255,6 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
               title: "${userRole == 'student' ? 'Gia sư' : 'Học viên'}: $displayName",
               subtitle: "Môn: ${schedule.subjectName} - ${_formatScheduleTime(schedule)}",
               onTap: () {
-                // Navigate đến tab Lịch học và chọn ngày
                 final navProvider = Provider.of<NavigationProvider>(context, listen: false);
                 navProvider.navigateToScheduleTab(
                   selectDate: schedule.startTime,
@@ -281,7 +268,6 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: () {
-                // Navigate đến tab Lịch học (không chọn ngày cụ thể)
                 final navProvider = Provider.of<NavigationProvider>(context, listen: false);
                 navProvider.navigateToScheduleTab();
               },
@@ -312,7 +298,6 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
     return '$dateStr, $timeStr';
   }
 
-  // --- Widget Đánh giá Mới (CẬP NHẬT) ---
   Widget _buildNewReviews(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -363,7 +348,6 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
     );
   }
 
-  // --- THÊM METHOD build() ---
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -375,19 +359,15 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 0. Mục Hồ sơ công khai
             _buildPublicProfileSection(context),
             const SizedBox(height: 24),
             
-            // 1. Lưới Thống kê Nhanh
             _buildStatsGrid(context),
             const SizedBox(height: 24),
 
-            // 2. Lịch học Sắp tới
             _buildUpcomingSchedule(context),
             const SizedBox(height: 24),
 
-            // 3. Đánh giá Mới
             _buildNewReviews(context),
           ],
         ),
@@ -396,19 +376,18 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
   }
 }
 
-// --- Widget Card Thống kê ---
 class _StatCard extends StatelessWidget {
   final String title, value;
   final IconData icon;
   final Color color;
-  final VoidCallback? onTap; // <-- THÊM
+  final VoidCallback? onTap; 
 
   const _StatCard({
     required this.title, 
     required this.value, 
     required this.icon, 
     required this.color,
-    this.onTap, // <-- THÊM
+    this.onTap, 
   });
 
   @override
@@ -430,7 +409,6 @@ class _StatCard extends StatelessWidget {
       ),
     );
 
-    // Nếu có onTap, wrap với InkWell để có hiệu ứng ripple
     if (onTap != null) {
       return InkWell(
         onTap: onTap,
@@ -443,7 +421,6 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-// --- Widget Tile Lịch học (Giả) ---
 class _SessionTile extends StatelessWidget {
   final String title, subtitle;
   final VoidCallback onTap;
@@ -461,18 +438,17 @@ class _SessionTile extends StatelessWidget {
   }
 }
 
-// --- Widget Tile Đánh giá (CẬP NHẬT) ---
 class _ReviewTile extends StatelessWidget {
   final String studentName;
   final int rating;
   final String comment;
-  final String? createdAt; // <-- THÊM
+  final String? createdAt; 
 
   const _ReviewTile({
     required this.studentName,
     required this.rating,
     required this.comment,
-    this.createdAt, // <-- THÊM
+    this.createdAt, 
   });
 
   @override

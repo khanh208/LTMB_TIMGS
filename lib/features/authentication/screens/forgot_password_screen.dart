@@ -1,4 +1,3 @@
-// lib/features/authentication/screens/forgot_password_screen.dart
 
 import 'package:flutter/material.dart';
 
@@ -21,19 +20,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   void _sendResetLink() {
     if (_formKey.currentState!.validate()) {
-      // --- Xử lý logic gửi link reset mật khẩu (qua Firebase) ---
-      // (Ví dụ: await FirebaseAuth.instance.sendPasswordResetEmail(email: _emailController.text.trim());)
       
       print("Gửi link reset đến: ${_emailController.text.trim()}");
 
-      // Hiển thị thông báo thành công và quay lại
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text("Đã gửi link reset. Vui lòng kiểm tra email!"),
           backgroundColor: Theme.of(context).primaryColor,
         ),
       );
-      Navigator.pop(context); // Quay lại màn hình Đăng nhập
+      Navigator.pop(context); 
     }
   }
 
@@ -42,7 +38,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Quên mật khẩu"),
-        backgroundColor: Colors.transparent, // Nền trong suốt
+        backgroundColor: Colors.transparent, 
         elevation: 0,
       ),
       body: Center(

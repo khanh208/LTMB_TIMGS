@@ -1,14 +1,17 @@
-// lib/features/profile/screens/tutor_profile_detail_screen.dart
 
 import 'package:flutter/material.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/models/tutor_detail_model.dart';
 import '../../../core/models/review_model.dart';
 import '../../../core/models/subject_model.dart';
-import '../../../core/utils/error_handler.dart'; // <-- THÊM
+import '../../../core/utils/error_handler.dart'; 
 import 'package:provider/provider.dart';
 import '../../../core/providers/auth_provider.dart';
-import '../../../core/widgets/avatar_widget.dart'; // <-- THÊM
+import '../../../core/widgets/avatar_widget.dart'; 
+import '../../../core/models/tutor_certificate_model.dart'; 
+import 'dart:convert'; 
+import 'package:flutter/services.dart'; 
+import '../../chat/screens/chat_detail_screen.dart'; 
 
 class TutorProfileDetailScreen extends StatefulWidget {
   final String tutorId;
@@ -24,17 +27,21 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
   
   TutorDetailModel? _tutorDetail;
   bool _isLoading = true;
-  bool _isFavorited = false; // (Sẽ implement với API saved-tutors sau)
-  bool _hasError = false; // <-- Đổi từ String? _error
+  bool _isFavorited = false; 
+  bool _hasError = false; 
+  
+  bool _isLoadingConnection = true;
+  bool _isConnected = false;
+  String? _roomId; 
 
   @override
   void initState() {
     super.initState();
     _loadTutorDetail();
-    _checkIfFavorited(); // <-- THÊM: Kiểm tra xem đã lưu chưa
+    _checkIfFavorited();
+    _checkChatConnection(); 
   }
 
-  // THÊM MỚI: Kiểm tra xem gia sư đã được lưu chưa
   Future<void> _checkIfFavorited() async {
     try {
       final isSaved = await _apiService.isTutorSaved(widget.tutorId);
@@ -45,7 +52,38 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
       }
     } catch (e) {
       debugPrint('⚠️ [TutorDetail] Error checking saved status: $e');
-      // Không hiển thị lỗi, chỉ log
+    }
+  }
+
+  Future<void> _checkChatConnection() async {
+    setState(() {
+      _isLoadingConnection = true;
+    });
+
+    try {
+      final result = await _apiService.checkChatConnection(widget.tutorId);
+      
+      if (mounted) {
+        setState(() {
+          _isConnected = result['isConnected'] ?? false;
+          final roomIdRaw = result['roomId'];
+          if (roomIdRaw != null) {
+            _roomId = roomIdRaw.toString();
+          } else {
+            _roomId = null;
+          }
+          _isLoadingConnection = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('⚠️ [TutorDetail] Error checking chat connection: $e');
+      if (mounted) {
+        setState(() {
+          _isConnected = false;
+          _roomId = null;
+          _isLoadingConnection = false;
+        });
+      }
     }
   }
 
@@ -71,7 +109,6 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
           _isLoading = false;
         });
         
-        // Hiển thị popup thông báo lỗi
         ErrorHandler.showErrorDialogFromException(
           context,
           e,
@@ -81,8 +118,25 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
     }
   }
 
-  // --- NÚT HÀNH ĐỘNG CHÍNH (GỬI YÊU CẦU) ---
   Widget _buildBottomActionButtons() {
+    if (_isLoadingConnection) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12).copyWith(
+          bottom: MediaQuery.of(context).viewInsets.bottom + 12,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Colors.grey[200]!)),
+        ),
+        child: const Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 12.0),
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12).copyWith(
         bottom: MediaQuery.of(context).viewInsets.bottom + 12,
@@ -98,22 +152,58 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
           ),
         ],
       ),
-      child: ElevatedButton(
+      child: _isConnected
+          ? _buildConnectedButton() 
+          : _buildConnectButton(),   
+    );
+  }
+
+  Widget _buildConnectedButton() {
+    return ElevatedButton.icon(
         onPressed: () {
-          _showConnectionRequestDialog();
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).primaryColor,
-          foregroundColor: Colors.white,
-          minimumSize: const Size(double.infinity, 50),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-        child: const Text("Gửi yêu cầu Kết nối", style: TextStyle(fontSize: 16)),
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatDetailScreen(
+              recipientName: _tutorDetail?.fullName ?? 'Gia sư',
+              recipientId: widget.tutorId,
+              roomId: _roomId, 
+            ),
+          ),
+        );
+      },
+      icon: const Icon(Icons.message, size: 20),
+      label: const Text(
+        "Nhắn tin ngay",
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blue, 
+        foregroundColor: Colors.white,
+        minimumSize: const Size(double.infinity, 50),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
 
-  // --- POPUP GỬI YÊU CẦU KẾT NỐI ---
+  Widget _buildConnectButton() {
+    return ElevatedButton(
+      onPressed: () {
+        _showConnectionRequestDialog();
+        },
+        style: ElevatedButton.styleFrom(
+        backgroundColor: Theme.of(context).primaryColor, 
+          foregroundColor: Colors.white,
+          minimumSize: const Size(double.infinity, 50),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      child: const Text(
+        "Gửi yêu cầu / Kết nối",
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
   Future<void> _showConnectionRequestDialog() async {
     final TextEditingController messageController = TextEditingController();
     bool isSending = false;
@@ -143,8 +233,8 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
                     TextField(
                       controller: messageController,
                       enabled: !isSending,
-                      maxLines: 8, // <-- TEXT INPUT TO
-                      minLines: 6, // <-- TEXT INPUT TO
+                      maxLines: 8,
+                      minLines: 6,
                       decoration: InputDecoration(
                         hintText: 'Ví dụ: Em muốn học Lập trình Flutter, thầy còn slot không ạ?',
                         border: OutlineInputBorder(
@@ -194,8 +284,7 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
                           });
 
                           try {
-                            // Gửi yêu cầu kết nối
-                            await _apiService.sendConnectionRequest(
+                            final result = await _apiService.sendConnectionRequest(
                               widget.tutorId,
                               message,
                             );
@@ -203,7 +292,20 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
                             if (mounted) {
                               Navigator.of(dialogContext).pop();
                               
-                              // Hiển thị thông báo thành công
+                              final roomData = result['data'];
+                              String? newRoomId;
+                              if (roomData != null && roomData['room'] != null) {
+                                final roomIdRaw = roomData['room']['room_id'];
+                                if (roomIdRaw != null) {
+                                  newRoomId = roomIdRaw.toString();
+                                }
+                              }
+
+                              setState(() {
+                                _isConnected = true;
+                                _roomId = newRoomId;
+                              });
+
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Đã gửi yêu cầu kết nối!'),
@@ -212,8 +314,6 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
                                 ),
                               );
 
-                              // TODO: Có thể cần reload chat rooms để đồng bộ tin nhắn
-                              // Nếu có callback hoặc provider để refresh chat list
                             }
                           } catch (e) {
                             setDialogState(() {
@@ -225,17 +325,30 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
                                 dialogContext,
                                 e,
                                 onRetry: () async {
-                                  // Retry logic
                                   setDialogState(() {
                                     isSending = true;
                                   });
                                   try {
-                                    await _apiService.sendConnectionRequest(
+                                    final result = await _apiService.sendConnectionRequest(
                                       widget.tutorId,
                                       messageController.text.trim(),
                                     );
+                                    
+                                    final roomData = result['data'];
+                                    String? newRoomId;
+                                    if (roomData != null && roomData['room'] != null) {
+                                      final roomIdRaw = roomData['room']['room_id'];
+                                      if (roomIdRaw != null) {
+                                        newRoomId = roomIdRaw.toString();
+                                      }
+                                    }
+                                    
                                     if (mounted) {
                                       Navigator.of(dialogContext).pop();
+                                      setState(() {
+                                        _isConnected = true;
+                                        _roomId = newRoomId;
+                                      });
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(
                                           content: Text('Đã gửi yêu cầu kết nối!'),
@@ -269,11 +382,9 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
     );
   }
 
-  // THÊM MỚI: Toggle favorite
   Future<void> _toggleFavorite() async {
     final wasFavorited = _isFavorited;
     
-    // Optimistic update
     setState(() {
       _isFavorited = !_isFavorited;
     });
@@ -281,7 +392,7 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
     try {
       await _apiService.toggleSavedTutor(
         widget.tutorId,
-        isSaved: wasFavorited, // Nếu đã favorite thì remove, chưa thì add
+        isSaved: wasFavorited, 
       );
 
       if (mounted) {
@@ -297,7 +408,6 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
         );
       }
     } catch (e) {
-      // Rollback nếu có lỗi
       if (mounted) {
         setState(() {
           _isFavorited = wasFavorited;
@@ -321,7 +431,6 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
     }
 
     if (_hasError || _tutorDetail == null) {
-      // Hiển thị giao diện mặc định (empty state)
       return Scaffold(
         appBar: AppBar(title: const Text('Chi tiết Gia sư')),
         body: const Center(
@@ -342,7 +451,7 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
               _isFavorited ? Icons.favorite : Icons.favorite_border,
               color: _isFavorited ? Colors.red : Colors.grey,
             ),
-            onPressed: _toggleFavorite, // <-- CẬP NHẬT: Gọi method mới
+            onPressed: _toggleFavorite, 
           ),
         ],
       ),
@@ -350,23 +459,22 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
       body: _tutorDetail == null
           ? const Center(child: Text('Không tìm thấy thông tin gia sư'))
           : SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // --- 1. THÔNG TIN CƠ BẢN ---
-                          Padding(
-                            padding: const EdgeInsets.all(20.0),
-                            child: Row(
-                              children: [
-                                AvatarWidget( // <-- THAY THẾ CircleAvatar
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Row(
+                children: [
+                                AvatarWidget( 
                                   avatarUrl: _tutorDetail!.avatarUrl,
-                                  radius: 40,
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
+                    radius: 40,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                                       Row(
                                         children: [
                                           Expanded(
@@ -385,9 +493,9 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
                                               size: 20,
                                             ),
                                         ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Row(
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
                                         children: [
                                           const Icon(Icons.star, color: Colors.amber, size: 20),
                                           const SizedBox(width: 4),
@@ -402,7 +510,7 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
                                             " (${_tutorDetail!.reviewCount} đánh giá)",
                                             style: const TextStyle(fontSize: 16, color: Colors.grey),
                                           ),
-                                        ],
+                          ],
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
@@ -412,21 +520,20 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
                                           color: Theme.of(context).primaryColor,
                                           fontWeight: FontWeight.bold,
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Divider(indent: 20, endIndent: 20),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(indent: 20, endIndent: 20),
 
-                          // --- 2. GIỚI THIỆU ---
                           if (_tutorDetail!.bio != null && _tutorDetail!.bio!.isNotEmpty)
-                            _buildSection(
-                              context,
-                              icon: Icons.info_outline,
-                              title: "Giới thiệu",
+            _buildSection(
+              context,
+              icon: Icons.info_outline,
+              title: "Giới thiệu",
                               content: Text(
                                 _tutorDetail!.bio!,
                                 style: const TextStyle(
@@ -434,18 +541,17 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
                                   height: 1.5,
                                   color: Colors.black87,
                                 ),
-                              ),
-                            ),
+              ),
+            ),
 
-                          // --- 3. MÔN HỌC ---
                           if (_tutorDetail!.subjects.isNotEmpty)
-                            _buildSection(
-                              context,
-                              icon: Icons.book_outlined,
-                              title: "Môn học & Kỹ năng",
+            _buildSection(
+              context,
+              icon: Icons.book_outlined,
+              title: "Môn học & Kỹ năng",
                               content: Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
+                spacing: 8,
+                runSpacing: 8,
                                 children: _tutorDetail!.subjects.map((subject) {
                                   return Chip(
                                     label: Text(subject.name),
@@ -458,25 +564,79 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
                               ),
                             ),
 
-                          // --- 4. BẰNG CẤP (chưa có trong API) ---
-                          // (Sẽ thêm sau nếu API có)
-
-                          // --- 5. ĐÁNH GIÁ CỦA HỌC VIÊN ---
-                          if (_tutorDetail!.reviews.isNotEmpty)
+                          if (_tutorDetail!.certificates.isNotEmpty)
                             _buildSection(
                               context,
-                              icon: Icons.reviews_outlined,
-                              title: "Đánh giá từ Học viên",
-                              content: Column(
-                                children: [
-                                  // Hiển thị tối đa 3 reviews đầu tiên
+                              icon: Icons.workspace_premium_outlined,
+                              title: "Bằng cấp & Chứng chỉ",
+                              content: GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                  childAspectRatio: 0.8,
+                                ),
+                                itemCount: _tutorDetail!.certificates.length,
+                                itemBuilder: (context, index) {
+                                  final cert = _tutorDetail!.certificates[index];
+                                  final base64String = cert.imageUrl.split(',').last;
+                                  final imageBytes = base64Decode(base64String);
+                                  final imageProvider = MemoryImage(imageBytes);
+
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.grey.shade300),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        Expanded(
+                                          child: ClipRRect(
+                                            borderRadius: const BorderRadius.vertical(
+                                              top: Radius.circular(8),
+                                            ),
+                                            child: Image(
+                                              image: imageProvider,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Text(
+                                            cert.title,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+            
+                          if (_tutorDetail!.reviews.isNotEmpty)
+            _buildSection(
+              context,
+              icon: Icons.reviews_outlined,
+              title: "Đánh giá từ Học viên",
+              content: Column(
+                children: [
                                   ..._tutorDetail!.reviews.take(3).map((review) {
                                     return _buildReviewItem(review);
                                   }),
                                   if (_tutorDetail!.reviews.length > 3)
-                                    TextButton(
+                  TextButton(
                                       onPressed: () {
-                                        // (Điều hướng đến màn hình xem tất cả đánh giá)
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
                                             content: Text(
@@ -487,7 +647,7 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
                                       },
                                       child: Text("Xem tất cả ${_tutorDetail!.reviewCount} đánh giá"),
                                     ),
-                                ],
+                ],
                               ),
                             )
                           else
@@ -498,15 +658,14 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
                               content: const Text(
                                 "Chưa có đánh giá nào",
                                 style: TextStyle(color: Colors.grey),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  // Widget Tái sử dụng cho các mục
   Widget _buildSection(
     BuildContext context, {
     required IconData icon,
@@ -535,7 +694,6 @@ class _TutorProfileDetailScreenState extends State<TutorProfileDetailScreen> {
     );
   }
 
-  // Widget cho 1 item đánh giá
   Widget _buildReviewItem(ReviewModel review) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),

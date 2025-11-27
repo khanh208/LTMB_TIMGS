@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/utils/app_preferences.dart';
 
-// (Giữ nguyên OnboardingScreen StatefulWidget ở đây)
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
   @override
@@ -81,11 +80,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: ElevatedButton(
                 onPressed: () async {
                   if (currentPage == demoData.length - 1) {
-                    // Đánh dấu onboarding đã hoàn thành
                     await AppPreferences.setOnboardingCompleted();
-                    // Chuyển đến màn hình login
                     if (mounted) {
-                      Navigator.pushReplacementNamed(context, '/login');
+                    Navigator.pushReplacementNamed(context, '/login');
                     }
                   } else {
                     _pageController.nextPage(
@@ -134,27 +131,27 @@ class OnboardContent extends StatelessWidget {
       child: Column(
         children: [
           Expanded(
-            child: Container( // Thay đổi ở đây: Dùng Container để bo góc và đổ bóng
-              padding: const EdgeInsets.all(16.0), // Padding bên trong container
+            child: Container( 
+              padding: const EdgeInsets.all(16.0), 
               decoration: BoxDecoration(
-                color: Colors.white, // Nền cho hiệu ứng đổ bóng
-                borderRadius: BorderRadius.circular(20), // Bo góc ảnh
-                boxShadow: [ // Đổ bóng
+                color: Colors.white, 
+                borderRadius: BorderRadius.circular(20), 
+                boxShadow: [ 
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.2), // Màu bóng
-                    spreadRadius: 2, // Độ lan rộng
-                    blurRadius: 10, // Độ mờ
-                    offset: const Offset(0, 4), // Vị trí bóng (dưới và phải)
+                    color: Colors.grey.withOpacity(0.2), 
+                    spreadRadius: 2, 
+                    blurRadius: 10, 
+                    offset: const Offset(0, 4), 
                   ),
                 ],
               ),
-              child: ClipRRect( // ClipRRect để hình ảnh bên trong cũng bo góc
-                borderRadius: BorderRadius.circular(16), // Bo góc ít hơn so với container
+              child: ClipRRect( 
+                borderRadius: BorderRadius.circular(16), 
                 child: Image.asset(
                   illustration!,
                   fit: BoxFit.contain,
-                  filterQuality: FilterQuality.high, // Chất lượng hiển thị cao
-                  isAntiAlias: true, // Chống răng cưa cho ảnh
+                  filterQuality: FilterQuality.high, 
+                  isAntiAlias: true, 
                 ),
               ),
             ),
@@ -187,7 +184,6 @@ class OnboardContent extends StatelessWidget {
   }
 }
 
-// (Giữ nguyên DotIndicator StatelessWidget ở đây)
 class DotIndicator extends StatelessWidget {
   const DotIndicator({
     super.key,

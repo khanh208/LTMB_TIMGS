@@ -1,7 +1,6 @@
 
 
 
-// lib/features/schedule/models/schedule_event_model.dart
 
 class ScheduleEventModel {
   final String scheduleId;
@@ -10,10 +9,11 @@ class ScheduleEventModel {
   final String subjectId;
   final DateTime startTime;
   final DateTime endTime;
-  final String status; // 'pending', 'confirmed', 'completed', 'cancelled'
+  final String status; 
   final String tutorName;
   final String studentName;
   final String subjectName;
+  final String? bookingGroupId; 
 
   ScheduleEventModel({
     required this.scheduleId,
@@ -26,6 +26,7 @@ class ScheduleEventModel {
     required this.tutorName,
     required this.studentName,
     required this.subjectName,
+    this.bookingGroupId, 
   });
 
   factory ScheduleEventModel.fromJson(Map<String, dynamic> json) {
@@ -40,6 +41,7 @@ class ScheduleEventModel {
       tutorName: json['tutor_name'] ?? '',
       studentName: json['student_name'] ?? '',
       subjectName: json['subject_name'] ?? '',
+      bookingGroupId: json['booking_group_id']?.toString(), 
     );
   }
 
@@ -69,4 +71,9 @@ class ScheduleEventModel {
   String get formattedDate {
     return '${startTime.day}/${startTime.month}/${startTime.year}';
   }
+  
+  bool get isPendingPayment => status == 'pending_payment';
+  bool get isConfirmed => status == 'confirmed';
+  bool get isCompleted => status == 'completed';
+  bool get isCancelled => status == 'cancelled';
 }

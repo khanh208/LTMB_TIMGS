@@ -1,4 +1,3 @@
-// lib/features/wallet/screens/wallet_screen.dart
 
 import 'package:flutter/material.dart';
 
@@ -14,13 +13,10 @@ class WalletScreen extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // 1. Thẻ Số dư
             _buildBalanceCard(context),
             
-            // 2. Thẻ Liên kết Momo (Như bạn yêu cầu)
             _buildMomoActionCard(context),
             
-            // 3. Lịch sử Giao dịch
             _buildTransactionHistory(context),
           ],
         ),
@@ -28,7 +24,6 @@ class WalletScreen extends StatelessWidget {
     );
   }
 
-  // --- Widget Thẻ Số dư ---
   Widget _buildBalanceCard(BuildContext context) {
     return Container(
       width: double.infinity,
@@ -54,7 +49,7 @@ class WalletScreen extends StatelessWidget {
           ),
           SizedBox(height: 8),
           Text(
-            "0 VND", // (Dữ liệu giả)
+            "0 VND", 
             style: TextStyle(
               color: Colors.white,
               fontSize: 32,
@@ -66,7 +61,6 @@ class WalletScreen extends StatelessWidget {
     );
   }
 
-  // --- Widget Liên kết Momo ---
   Widget _buildMomoActionCard(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -76,12 +70,10 @@ class WalletScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // (Bạn sẽ cần thêm logo Momo vào assets/images)
-            // 
             Image.asset(
-              'assets/images/momo_logo.png', // Đảm bảo bạn có ảnh này
+              'assets/images/momo_logo.png', 
               height: 40,
-              errorBuilder: (context, error, stackTrace) => const Icon(Icons.account_balance_wallet, size: 40, color: Color(0xFFAE1076)), // Màu Momo (thay thế)
+              errorBuilder: (context, error, stackTrace) => const Icon(Icons.account_balance_wallet, size: 40, color: Color(0xFFAE1076)), 
             ),
             const SizedBox(height: 12),
             const Text(
@@ -97,10 +89,9 @@ class WalletScreen extends StatelessWidget {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                // (Xử lý logic liên kết hoặc nạp tiền Momo SDK)
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFAE1076), // Màu chính của Momo
+                backgroundColor: const Color(0xFFAE1076), 
                 foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 45),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -113,9 +104,7 @@ class WalletScreen extends StatelessWidget {
     );
   }
 
-  // --- Widget Lịch sử Giao dịch ---
   Widget _buildTransactionHistory(BuildContext context) {
-    // (Dữ liệu giả)
     final List<Map<String, String>> transactions = [
       {'title': 'Thanh toán cho Gia sư Nguyễn Văn A', 'amount': '- 300,000', 'date': '06/11/2025'},
       {'title': 'Nạp tiền từ Momo', 'amount': '+ 500,000', 'date': '05/11/2025'},
@@ -131,10 +120,7 @@ class WalletScreen extends StatelessWidget {
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-          // (Hiển thị nếu rỗng - Giả lập)
-          // const Center(child: Text("Chưa có giao dịch nào.")),
 
-          // Hiển thị danh sách
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),

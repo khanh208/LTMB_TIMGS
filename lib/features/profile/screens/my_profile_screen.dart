@@ -1,4 +1,3 @@
-// lib/features/profile/screens/my_profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; 
 import '../../../core/models/user_model.dart';
@@ -22,14 +21,12 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // Load thông tin user từ API khi mở màn hình
     _loadUserInfo();
   }
 
   Future<void> _loadUserInfo() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
-    // Chỉ load nếu đã đăng nhập
     if (authProvider.isLoggedIn) {
       setState(() {
         _isLoading = true;
@@ -38,7 +35,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       try {
         await authProvider.loadCurrentUser();
       } catch (e) {
-        // Xử lý lỗi (có thể token hết hạn)
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -61,7 +57,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     return Column(
       children: [
         const SizedBox(height: 20),
-        AvatarWidget( // <-- THAY THẾ CircleAvatar
+        AvatarWidget( 
           avatarUrl: user?.avatarUrl,
           radius: 50,
         ),
@@ -88,7 +84,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
 
   Widget _buildRoleSpecificContent(BuildContext context, String? userRole) {
     if (userRole == 'student') {
-      // Nội dung của Học viên
       return Column(
         children: [
           ListTile(
@@ -110,16 +105,13 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         ],
       );
     } else {
-      // Nội dung của Gia sư - Không có gì đặc biệt
       return const SizedBox.shrink();
     }
   }
 
-  // --- Widget các mục Cài đặt (THÊM MỚI) ---
   Widget _buildSettingsContent(BuildContext context) {
     return Column(
       children: [
-        // Chỉnh sửa thông tin tài khoản
         ListTile(
           leading: const Icon(Icons.person_outline),
           title: const Text("Chỉnh sửa thông tin tài khoản"),
@@ -132,7 +124,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         
         const Divider(height: 1),
         
-        // Thay đổi mật khẩu
         ListTile(
           leading: const Icon(Icons.lock_outline),
           title: const Text("Thay đổi mật khẩu"),
@@ -142,7 +133,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           },
         ),
         
-        // Quản lý thông báo
         ListTile(
           leading: const Icon(Icons.notifications_none_outlined),
           title: const Text("Quản lý thông báo"),
@@ -154,26 +144,22 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         
         const Divider(height: 20, thickness: 1, indent: 16, endIndent: 16),
         
-        // Trợ giúp & Phản hồi
         ListTile(
           leading: const Icon(Icons.help_outline),
           title: const Text("Trợ giúp & Phản hồi"),
           trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
           onTap: () { 
-            // TODO: Điều hướng đến màn hình trợ giúp
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Tính năng đang phát triển')),
             );
           },
         ),
         
-        // Về ứng dụng
         ListTile(
           leading: const Icon(Icons.info_outline),
           title: const Text("Về ứng dụng"),
           trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
           onTap: () { 
-            // TODO: Điều hướng đến màn hình về ứng dụng
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Tính năng đang phát triển')),
             );
@@ -194,7 +180,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           appBar: AppBar(
             title: const Text("Hồ sơ của tôi"),
             actions: [
-              // XÓA nút settings, chỉ giữ nút refresh
               IconButton(
                 icon: const Icon(Icons.refresh),
                 onPressed: _loadUserInfo,
@@ -208,7 +193,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     children: [
                       _buildCommonUserInfo(context, user),
                       _buildRoleSpecificContent(context, userRole),
-                      _buildSettingsContent(context), // <-- THÊM MỚI: Các mục cài đặt
+                      _buildSettingsContent(context), 
                       const Divider(),
                       ListTile(
                         leading: const Icon(Icons.logout, color: Colors.red),
