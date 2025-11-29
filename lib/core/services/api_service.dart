@@ -804,4 +804,138 @@ class ApiService {
       rethrow;
     }
   }
+
+  Future<Map<String, dynamic>> linkWallet({
+    required String accountType, 
+    required String accountNumber,
+    required String accountName,
+  }) async {
+    try {
+      debugPrint('📤 [API] linkWallet - accountType: $accountType, accountNumber: $accountNumber');
+
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/wallet/link'),
+            headers: await _getAuthHeaders(),
+            body: jsonEncode({
+              'accountType': accountType,
+              'accountNumber': accountNumber,
+              'accountName': accountName,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'linkWallet');
+
+      final responseBody = jsonDecode(response.body);
+      debugPrint('✅ [API] linkWallet success');
+      return Map<String, dynamic>.from(responseBody);
+    } catch (e) {
+      _handleError(e, 'linkWallet');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> depositWallet({
+    required int amount,
+    required String source, 
+  }) async {
+    try {
+      debugPrint('📤 [API] depositWallet - amount: $amount, source: $source');
+
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/wallet/deposit'),
+            headers: await _getAuthHeaders(),
+            body: jsonEncode({
+              'amount': amount,
+              'source': source,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'depositWallet');
+
+      final responseBody = jsonDecode(response.body);
+      debugPrint('✅ [API] depositWallet success');
+      return Map<String, dynamic>.from(responseBody);
+    } catch (e) {
+      _handleError(e, 'depositWallet');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getWalletBalance() async {
+    try {
+      debugPrint('📤 [API] getWalletBalance');
+
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/wallet/balance'),
+            headers: await _getAuthHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'getWalletBalance');
+
+      final responseBody = jsonDecode(response.body);
+      debugPrint('✅ [API] getWalletBalance success: balance=${responseBody['balance']}');
+      return Map<String, dynamic>.from(responseBody);
+    } catch (e) {
+      _handleError(e, 'getWalletBalance');
+      rethrow;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getWalletTransactions() async {
+    try {
+      debugPrint('📤 [API] getWalletTransactions');
+
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/wallet/transactions'),
+            headers: await _getAuthHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'getWalletTransactions');
+
+      final responseBody = jsonDecode(response.body);
+      if (responseBody is List) {
+        debugPrint('✅ [API] getWalletTransactions success: count=${responseBody.length}');
+        return List<Map<String, dynamic>>.from(responseBody);
+      }
+      return [];
+    } catch (e) {
+      _handleError(e, 'getWalletTransactions');
+      rethrow;
+    }
+  }
+
+  // --- GET /api/wallet/accounts ---
+  // Lấy danh sách các ví đã liên kết
+  Future<List<Map<String, dynamic>>> getWalletAccounts() async {
+    try {
+      debugPrint('📤 [API] getWalletAccounts');
+
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/wallet/accounts'),
+            headers: await _getAuthHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'getWalletAccounts');
+
+      final responseBody = jsonDecode(response.body);
+      if (responseBody is List) {
+        debugPrint('✅ [API] getWalletAccounts success: count=${responseBody.length}');
+        return List<Map<String, dynamic>>.from(responseBody);
+      }
+      return [];
+    } catch (e) {
+      _handleError(e, 'getWalletAccounts');
+      rethrow;
+    }
+  }
 }
