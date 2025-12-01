@@ -8,16 +8,20 @@ import '../../../core/utils/error_handler.dart';
 import '../../schedule/screens/create_proposal_screen.dart';
 import 'chat_bubble.dart';
 
+const String _supportAdminId = '0';
+
 class ChatDetailScreen extends StatefulWidget {
   final String recipientName;
   final String recipientId;
   final String? roomId;
+  final bool enableScheduleAction;
 
   const ChatDetailScreen({
     super.key,
     required this.recipientName,
     required this.recipientId,
     this.roomId,
+    this.enableScheduleAction = true,
   });
 
   @override
@@ -157,7 +161,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           ],
         ),
         actions: [
-          if (userRole == 'tutor')
+          if (userRole == 'tutor' &&
+              widget.enableScheduleAction &&
+              widget.recipientId != _supportAdminId)
             FloatingActionButton(
               onPressed: () {
                 Navigator.push(
