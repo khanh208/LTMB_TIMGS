@@ -2,7 +2,16 @@ const tutorService = require('../services/tutorService');
 
 const searchTutors = async (req, res) => {
   try {
-    const filters = req.query;
+    // Lấy params từ URL (VD: ?search=A&minRating=4&page=1)
+    const filters = {
+      search: req.query.search,
+      category: req.query.category,
+      minRating: req.query.minRating,
+      maxPrice: req.query.maxPrice,
+      page: parseInt(req.query.page) || 1,
+      limit: parseInt(req.query.limit) || 20,
+    };
+
     const tutors = await tutorService.searchTutors(filters);
     res.status(200).json(tutors);
   } catch (error) {

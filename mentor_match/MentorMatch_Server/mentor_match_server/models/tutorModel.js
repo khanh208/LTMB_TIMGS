@@ -18,25 +18,78 @@ const createRequest = async (studentId, tutorId, message) => {
 };
 
 const search = async (filters) => {
+  const { search, category, minRating, maxPrice, page = 1, limit = 20 } = filters;
+
+  // 1. Query cơ bản (Lấy thông tin từ các bảng cũ)
   let query = `
-    SELECT U.user_id, U.full_name, U.avatar_url, P.bio, P.price_per_hour, P.average_rating, P.is_verified
+    SELECT U.user_id, U.full_name, U.avatar_url, 
+           P.bio, P.price_per_hour, P.average_rating, P.is_verified,
+           (SELECT COUNT(*) FROM mentor_match.Reviews R WHERE R.tutor_user_id = U.user_id) as reviews_count
     FROM mentor_match.Users U
     JOIN mentor_match.TutorProfiles P ON U.user_id = P.user_id
     WHERE U.role = 'tutor'
   `;
   
   const queryParams = [];
-  if (filters.category) {
-    queryParams.push(filters.category);
+  let paramCount = 1; // Biến đếm thứ tự $1, $2...
+
+  // 2. Tìm kiếm theo Tên hoặc Bio (Dùng ILIKE để không phân biệt hoa thường)
+  if (search) {
+    query += ` AND (U.full_name ILIKE $${paramCount} OR P.bio ILIKE $${paramCount})`;
+    queryParams.push(`%${search}%`); // Thêm % để tìm kiếm tương đối
+    paramCount++;
+  }
+
+  // 3. Lọc theo Category (Logic cũ của bạn, rất ổn)
+  if (category) {
     query += ` AND P.user_id IN (
       SELECT ts.tutor_user_id FROM mentor_match.TutorSubjects ts
       JOIN mentor_match.Subjects s ON ts.subject_id = s.subject_id
-      WHERE s.category = $${queryParams.length}
+      WHERE s.category = $${paramCount}
     )`;
+    queryParams.push(category);
+    paramCount++;
   }
-  
+
+  // 4. Lọc theo Đánh giá (Rating)
+  if (minRating) {
+    query += ` AND P.average_rating >= $${paramCount}`;
+    queryParams.push(minRating);
+    paramCount++;
+  }
+
+  // 5. Lọc theo Giá (Price)
+  if (maxPrice) {
+    query += ` AND P.price_per_hour <= $${paramCount}`;
+    queryParams.push(maxPrice);
+    paramCount++;
+  }
+
+  // 6. Sắp xếp (Mặc định: Người có rating cao lên đầu, sau đó đến người mới)
+  query += ` ORDER BY P.average_rating DESC, U.created_at DESC`;
+
+  // 7. Phân trang (Pagination) - QUAN TRỌNG
+  const offset = (page - 1) * limit;
+  query += ` LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
+  queryParams.push(limit, offset);
+
+  // Thực thi
   const result = await pool.query(query, queryParams);
-  return result.rows;
+  
+  // (Optional) Lấy thêm danh sách môn học cho từng gia sư để hiển thị đẹp hơn
+  // Đoạn này tùy bạn, nếu không cần hiển thị môn học ngay ở list thì bỏ qua.
+  const tutors = result.rows;
+  for (let tutor of tutors) {
+    const subjectsRes = await pool.query(
+      `SELECT s.name FROM mentor_match.Subjects s
+       JOIN mentor_match.TutorSubjects ts ON s.subject_id = ts.subject_id
+       WHERE ts.tutor_user_id = $1`,
+      [tutor.user_id]
+    );
+    tutor.subjects = subjectsRes.rows.map(r => r.name); // Trả về mảng tên môn: ["Toán", "Lý"]
+  }
+
+  return tutors;
 };
 
 const findProfileById = async (tutorId) => {

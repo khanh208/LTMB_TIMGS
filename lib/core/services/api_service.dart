@@ -26,7 +26,7 @@ class ApiException implements Exception {
 }
 
 class ApiService {
-  final String _baseUrl = "http://192.168.1.11:3000/api";
+  final String _baseUrl = "http://192.168.1.67:3000/api";
 
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -801,6 +801,122 @@ class ApiService {
       return Map<String, dynamic>.from(responseBody);
     } catch (e) {
       _handleError(e, 'updateScheduleStatus');
+      rethrow;
+    }
+  }
+
+  Future<double> getWalletBalance() async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/wallet/balance'),
+            headers: await _getAuthHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'getWalletBalance');
+      final body = jsonDecode(response.body);
+      return double.tryParse(body['balance'].toString()) ?? 0;
+    } catch (e) {
+      _handleError(e, 'getWalletBalance');
+      rethrow;
+    }
+  }
+
+  Future<List<dynamic>> getWalletTransactions() async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/wallet/transactions'),
+            headers: await _getAuthHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'getWalletTransactions');
+      final body = jsonDecode(response.body);
+      if (body is List) {
+        return body;
+      }
+      return [];
+    } catch (e) {
+      _handleError(e, 'getWalletTransactions');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> mockWalletDeposit(double amount) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/wallet/mock-deposit'),
+            headers: await _getAuthHeaders(),
+            body: jsonEncode({'amount': amount}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'mockWalletDeposit');
+      return Map<String, dynamic>.from(jsonDecode(response.body));
+    } catch (e) {
+      _handleError(e, 'mockWalletDeposit');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getAdminSummary() async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/admin/summary'),
+            headers: await _getAuthHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'getAdminSummary');
+      return Map<String, dynamic>.from(jsonDecode(response.body));
+    } catch (e) {
+      _handleError(e, 'getAdminSummary');
+      rethrow;
+    }
+  }
+
+  Future<List<dynamic>> getAdminTutors({String status = 'pending'}) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/admin/tutors')
+          .replace(queryParameters: {'status': status});
+
+      final response = await http
+          .get(
+            uri,
+            headers: await _getAuthHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'getAdminTutors');
+      final body = jsonDecode(response.body);
+      if (body is Map && body['tutors'] is List) {
+        return body['tutors'];
+      }
+      return [];
+    } catch (e) {
+      _handleError(e, 'getAdminTutors');
+      rethrow;
+    }
+  }
+
+  Future<void> updateTutorApproval(String tutorId,
+      {required bool isApproved}) async {
+    try {
+      final response = await http
+          .patch(
+            Uri.parse('$_baseUrl/admin/tutors/$tutorId'),
+            headers: await _getAuthHeaders(),
+            body: jsonEncode({'action': isApproved ? 'approve' : 'reject'}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'updateTutorApproval');
+    } catch (e) {
+      _handleError(e, 'updateTutorApproval');
       rethrow;
     }
   }

@@ -14,6 +14,7 @@ const scheduleRoutes = require('./routes/scheduleRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const subjectRoutes = require('./routes/subjectRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
+const walletRoutes = require('./routes/walletRoutes');
 
 app.use(express.json({ limit: '50mb' })); 
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -28,6 +29,7 @@ app.use('/api/schedule', scheduleRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/wallet', walletRoutes);
 
 app.get('/', (req, res) => {
   res.send('Chào mừng đến với MentorMatch API v1!');
