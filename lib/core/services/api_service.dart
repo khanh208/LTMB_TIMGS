@@ -26,7 +26,7 @@ class ApiException implements Exception {
 }
 
 class ApiService {
-  final String _baseUrl = "http://localhost:3000/api";
+  final String _baseUrl = "http://192.168.1.11:3000/api";
 
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
