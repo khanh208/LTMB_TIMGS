@@ -191,40 +191,131 @@ class ApiService {
     String? search,
     String? sortBy,
   }) async {
+    // Backward compatibility: use searchTutors
+    return searchTutors(
+      category: category,
+      search: search,
+      sortBy: sortBy,
+    );
+  }
+
+  // --- GET /api/tutors/search ---
+  // API tìm kiếm mới với các filters đơn giản
+  Future<List<Map<String, dynamic>>> searchTutors({
+    String? search,
+    String? category,
+    double? minRating,
+    double? maxPrice,
+    String? sortBy,
+    int? page,
+    int? limit,
+  }) async {
     final queryParams = <String, String>{};
+
+    if (search != null && search.isNotEmpty) {
+      queryParams['search'] = search;
+    }
     if (category != null && category.isNotEmpty) {
       queryParams['category'] = category;
     }
-    if (search != null && search.isNotEmpty) {
-      queryParams['search'] = search;
+    if (minRating != null) {
+      queryParams['minRating'] = minRating.toString();
+    }
+    if (maxPrice != null) {
+      queryParams['maxPrice'] = maxPrice.toString();
     }
     if (sortBy != null && sortBy.isNotEmpty) {
       queryParams['sortBy'] = sortBy;
     }
+    if (page != null) {
+      queryParams['page'] = page.toString();
+    }
+    if (limit != null) {
+      queryParams['limit'] = limit.toString();
+    }
 
-    final uri = Uri.parse('$_baseUrl/tutors')
+    // Build fallback params (only basic ones supported by /tutors endpoint)
+    final fallbackParams = <String, String>{};
+    if (search != null && search.isNotEmpty) {
+      fallbackParams['search'] = search;
+    }
+    if (category != null && category.isNotEmpty) {
+      fallbackParams['category'] = category;
+    }
+    if (sortBy != null && sortBy.isNotEmpty) {
+      fallbackParams['sortBy'] = sortBy;
+    }
+
+    // Try /tutors/search first, fallback to /tutors if 404
+    final searchUri = Uri.parse('$_baseUrl/tutors/search')
         .replace(queryParameters: queryParams);
+    final fallbackUri = Uri.parse('$_baseUrl/tutors')
+        .replace(queryParameters: fallbackParams);
 
     try {
+      debugPrint('📤 [API] searchTutors - Trying /tutors/search with: ${queryParams}');
+
       final response = await http
           .get(
-            uri,
+            searchUri,
             headers: await _getAuthHeaders(),
           )
           .timeout(const Duration(seconds: 10));
 
-      if (response.statusCode != 200) {
-        debugPrint('⚠️ [API] getTutors - Error ${response.statusCode}, returning empty list');
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+        
+        if (responseBody is List) {
+          debugPrint('✅ [API] searchTutors success: count=${responseBody.length}');
+          return List<Map<String, dynamic>>.from(responseBody);
+        }
+        
         return [];
       }
 
-      final responseBody = jsonDecode(response.body);
-      if (responseBody is List) {
-        return List<Map<String, dynamic>>.from(responseBody);
+      // If 404, use fallback immediately
+      if (response.statusCode == 404) {
+        debugPrint('⚠️ [API] searchTutors - 404, using fallback /tutors (minRating/maxPrice/page/limit ignored)');
+        debugPrint('📤 [API] searchTutors fallback - Query: ${fallbackParams}');
+        
+        final fallbackResponse = await http
+            .get(fallbackUri, headers: await _getAuthHeaders())
+            .timeout(const Duration(seconds: 10));
+        
+        if (fallbackResponse.statusCode == 200) {
+          final responseBody = jsonDecode(fallbackResponse.body);
+          if (responseBody is List) {
+            debugPrint('✅ [API] searchTutors fallback success: count=${responseBody.length}');
+            return List<Map<String, dynamic>>.from(responseBody);
+          }
+        } else {
+          debugPrint('⚠️ [API] searchTutors fallback - Error ${fallbackResponse.statusCode}');
+        }
+      } else {
+        debugPrint('⚠️ [API] searchTutors - Error ${response.statusCode}');
       }
+      
       return [];
     } catch (e) {
-      debugPrint('❌ [API] getTutors - Error: $e');
+      debugPrint('❌ [API] searchTutors - Exception: $e, trying fallback');
+      
+      // Try fallback on exception
+      try {
+        final fallbackResponse = await http
+            .get(fallbackUri, headers: await _getAuthHeaders())
+            .timeout(const Duration(seconds: 10));
+        
+        if (fallbackResponse.statusCode == 200) {
+          final responseBody = jsonDecode(fallbackResponse.body);
+          if (responseBody is List) {
+            debugPrint('✅ [API] searchTutors fallback success: count=${responseBody.length}');
+            return List<Map<String, dynamic>>.from(responseBody);
+          }
+        }
+      } catch (fallbackError) {
+        debugPrint('❌ [API] searchTutors fallback - Exception: $fallbackError');
+      }
+      
       return [];
     }
   }

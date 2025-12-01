@@ -58,11 +58,30 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
-      final tutorsData = await _apiService.getTutors(
-        category: widget.initialCategory,
+      // Map quick filters to API parameters
+      double? minRating;
+      double? maxPrice;
+      String? sortBy;
+
+      if (_selectedQuickFilters.contains('danh_gia_cao')) {
+        minRating = 4.0;
+        sortBy = 'rating_desc';
+      }
+      if (_selectedQuickFilters.contains('gia_thap')) {
+        maxPrice = 200000.0;
+        if (sortBy == null) {
+          sortBy = 'price_asc';
+        }
+      }
+
+      final tutorsData = await _apiService.searchTutors(
         search: _searchController.text.trim().isEmpty 
             ? null 
             : _searchController.text.trim(),
+        category: widget.initialCategory,
+        minRating: minRating,
+        maxPrice: maxPrice,
+        sortBy: sortBy,
       );
       
       setState(() {
@@ -102,66 +121,6 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  Widget _buildQuickFilterBar() {
-    final Map<String, String> quickFilters = {
-      'gan_toi': 'Gần tôi',
-      'danh_gia_cao': 'Đánh giá cao',
-      'gia_thap': 'Giá thấp',
-      'online': 'Dạy Online',
-    };
-
-    return IgnorePointer(
-      ignoring: _isAdvancedFilterActive, 
-      child: Opacity(
-        opacity: _isAdvancedFilterActive ? 0.4 : 1.0, 
-        child: Container(
-          height: 50, 
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border(bottom: BorderSide(color: Colors.grey[200]!))
-          ),
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: quickFilters.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              String key = quickFilters.keys.elementAt(index);
-              String label = quickFilters.values.elementAt(index);
-              bool isSelected = _selectedQuickFilters.contains(key);
-
-              return ChoiceChip(
-                label: Text(label),
-                selected: isSelected,
-                onSelected: (selected) {
-                  setState(() {
-                    if (selected) {
-                      _selectedQuickFilters.add(key);
-                    } else {
-                      _selectedQuickFilters.remove(key);
-                    }
-                  });
-                  _loadTutors(); 
-                },
-                selectedColor: Theme.of(context).primaryColor.withOpacity(0.1),
-                labelStyle: TextStyle(
-                  color: isSelected ? Theme.of(context).primaryColor : Colors.black,
-                ),
-                side: BorderSide(
-                  color: isSelected ? Theme.of(context).primaryColor : Colors.grey[300]!,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -199,8 +158,6 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
       body: Column(
         children: [
-          _buildQuickFilterBar(),
-          
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
