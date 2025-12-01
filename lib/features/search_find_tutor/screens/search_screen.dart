@@ -58,7 +58,6 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
-      // Map quick filters to API parameters
       double? minRating;
       double? maxPrice;
       String? sortBy;

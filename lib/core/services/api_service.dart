@@ -191,7 +191,6 @@ class ApiService {
     String? search,
     String? sortBy,
   }) async {
-    // Backward compatibility: use searchTutors
     return searchTutors(
       category: category,
       search: search,
@@ -199,8 +198,6 @@ class ApiService {
     );
   }
 
-  // --- GET /api/tutors/search ---
-  // API tìm kiếm mới với các filters đơn giản
   Future<List<Map<String, dynamic>>> searchTutors({
     String? search,
     String? category,
@@ -234,7 +231,6 @@ class ApiService {
       queryParams['limit'] = limit.toString();
     }
 
-    // Build fallback params (only basic ones supported by /tutors endpoint)
     final fallbackParams = <String, String>{};
     if (search != null && search.isNotEmpty) {
       fallbackParams['search'] = search;
@@ -246,7 +242,6 @@ class ApiService {
       fallbackParams['sortBy'] = sortBy;
     }
 
-    // Try /tutors/search first, fallback to /tutors if 404
     final searchUri = Uri.parse('$_baseUrl/tutors/search')
         .replace(queryParameters: queryParams);
     final fallbackUri = Uri.parse('$_baseUrl/tutors')
@@ -273,7 +268,6 @@ class ApiService {
         return [];
       }
 
-      // If 404, use fallback immediately
       if (response.statusCode == 404) {
         debugPrint('⚠️ [API] searchTutors - 404, using fallback /tutors (minRating/maxPrice/page/limit ignored)');
         debugPrint('📤 [API] searchTutors fallback - Query: ${fallbackParams}');
@@ -299,7 +293,6 @@ class ApiService {
     } catch (e) {
       debugPrint('❌ [API] searchTutors - Exception: $e, trying fallback');
       
-      // Try fallback on exception
       try {
         final fallbackResponse = await http
             .get(fallbackUri, headers: await _getAuthHeaders())
@@ -1003,8 +996,6 @@ class ApiService {
     }
   }
 
-  // --- GET /api/wallet/accounts ---
-  // Lấy danh sách các ví đã liên kết
   Future<List<Map<String, dynamic>>> getWalletAccounts() async {
     try {
       debugPrint('📤 [API] getWalletAccounts');
