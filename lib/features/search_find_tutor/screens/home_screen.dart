@@ -455,9 +455,9 @@ class _HomeSectionState extends State<_HomeSection> {
       final tutorsData = await _apiService.getTutors(category: widget.categoryKey);
        if (!mounted) return;
 
-       final random = Random(); // có thể khai báo static để tái sử dụng
+       final random = Random(); 
        final tutors = tutorsData.map((json) => TutorModel.fromJson(json)).toList();
-       tutors.shuffle(random); // xáo trộn vị trí
+       tutors.shuffle(random); 
 
        setState(() {
          _tutors = tutors;

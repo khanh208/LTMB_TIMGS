@@ -3,6 +3,7 @@
 const USER_ROLES = Object.freeze({
   STUDENT: 'student',
   TUTOR: 'tutor',
+  ADMIN: 'admin',
 });
 
 const REQUEST_STATUS = Object.freeze({
@@ -20,7 +21,7 @@ const SCHEDULE_STATUS = Object.freeze({
 const TRANSACTION_TYPES = Object.freeze({
   DEPOSIT: 'deposit',
   WITHDRAWAL: 'withdrawal',
-  PAYMENT: 'payment',
+  PAYMENT: '  ',
   EARNING: 'earning',
 });
 

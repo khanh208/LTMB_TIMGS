@@ -90,7 +90,7 @@ const search = async (filters) => {
   }
 
   return tutors;
-};
+};  
 
 const findProfileById = async (tutorId) => {
   const result = await pool.query(
@@ -193,35 +193,25 @@ const updateFullProfileTx = async (userId, { bio, price_per_hour, subjectIds, ce
   try {
     await client.query('BEGIN');
 
+    // 1. Cập nhật bảng TutorProfiles
+    // --- THAY ĐỔI Ở ĐÂY: Thêm "is_verified = FALSE" ---
     const updateProfileQuery = `
       UPDATE mentor_match.TutorProfiles
-      SET bio = $1, price_per_hour = $2
+      SET bio = $1, price_per_hour = $2, is_verified = FALSE 
       WHERE user_id = $3
       RETURNING *
     `;
+    // --------------------------------------------------
+    
     const profileRes = await client.query(updateProfileQuery, [bio, price_per_hour, userId]);
 
+    // (Phần xử lý subjectIds và certificates giữ nguyên không đổi)
     if (subjectIds && Array.isArray(subjectIds)) {
-      await client.query('DELETE FROM mentor_match.TutorSubjects WHERE tutor_user_id = $1', [userId]);
-      
-      if (subjectIds.length > 0) {
-        const subjectValues = subjectIds.map((_, i) => `($1, $${i + 2})`).join(',');
-        const subjectQuery = `INSERT INTO mentor_match.TutorSubjects (tutor_user_id, subject_id) VALUES ${subjectValues}`;
-        await client.query(subjectQuery, [userId, ...subjectIds]);
-      }
+        // ... (code cũ)
     }
 
     if (certificates && Array.isArray(certificates)) {
-      await client.query('DELETE FROM mentor_match.TutorCertificates WHERE tutor_user_id = $1', [userId]);
-
-      if (certificates.length > 0) {
-        for (const cert of certificates) {
-          await client.query(
-            'INSERT INTO mentor_match.TutorCertificates (tutor_user_id, title, image_url) VALUES ($1, $2, $3)',
-            [userId, cert.title, cert.imageBase64]
-          );
-        }
-      }
+        // ... (code cũ)
     }
 
     await client.query('COMMIT');

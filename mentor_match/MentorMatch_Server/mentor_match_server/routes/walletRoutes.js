@@ -7,7 +7,6 @@ router.use(protect);
 
 router.post('/link', walletController.linkAccount);
 router.post('/deposit', walletController.deposit);
-router.post('/mock-deposit', walletController.mockDeposit);
 router.get('/balance', walletController.getBalance);
 router.get('/transactions', walletController.getTransactions);
 router.get('/accounts', walletController.getLinkedAccounts);

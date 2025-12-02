@@ -1,14 +1,15 @@
 import 'dart:convert';
 import 'dart:async';
-import 'dart:io'; 
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+// --- CUSTOM EXCEPTION CLASS ---
 class ApiException implements Exception {
   final String message;
   final int? statusCode;
-  final String? errorType; 
+  final String? errorType;
 
   ApiException({
     required this.message,
@@ -25,8 +26,12 @@ class ApiException implements Exception {
   }
 }
 
+// --- MAIN API SERVICE CLASS ---
 class ApiService {
-  final String _baseUrl = "http://192.168.1.67:3000/api";
+  // ⚠️ QUAN TRỌNG: Thay đổi IP này theo mạng của bạn (dùng ipconfig/ifconfig để xem)
+  // Nếu chạy máy ảo Android: dùng 10.0.2.2
+  // Nếu chạy máy thật: dùng IP LAN (VD: 192.168.1.67)
+  final String _baseUrl = "http://172.20.10.4:3000/api";
 
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -41,29 +46,21 @@ class ApiService {
     };
   }
 
+  // --- XỬ LÝ LỖI CHUNG ---
   void _handleError(dynamic error, String operation) {
+    debugPrint('❌ [API Error] $operation: $error');
     if (error is SocketException) {
       throw ApiException(
-        message: 'Không có kết nối internet',
-        errorType: 'network',
-      );
+          message: 'Không có kết nối internet', errorType: 'network');
     } else if (error is TimeoutException) {
-      throw ApiException(
-        message: 'Kết nối quá lâu',
-        errorType: 'timeout',
-      );
+      throw ApiException(message: 'Kết nối quá lâu', errorType: 'timeout');
     } else if (error is http.ClientException) {
-      throw ApiException(
-        message: 'Lỗi kết nối mạng',
-        errorType: 'network',
-      );
+      throw ApiException(message: 'Lỗi kết nối mạng', errorType: 'network');
     } else if (error is FormatException) {
       throw ApiException(
-        message: 'Dữ liệu không đúng định dạng',
-        errorType: 'client',
-      );
+          message: 'Dữ liệu không đúng định dạng', errorType: 'client');
     } else if (error is ApiException) {
-      throw error; 
+      throw error;
     } else {
       throw ApiException(
         message: error.toString().replaceAll('Exception: ', ''),
@@ -74,7 +71,7 @@ class ApiService {
 
   void _handleHttpResponse(http.Response response, String operation) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      return; 
+      return;
     }
 
     String errorMessage;
@@ -82,69 +79,68 @@ class ApiService {
       final responseBody = jsonDecode(response.body);
       errorMessage = responseBody['message'] ?? 'Đã xảy ra lỗi';
     } catch (e) {
-      errorMessage = 'Đã xảy ra lỗi';
-    }
-
-    String errorType = 'server';
-    if (response.statusCode >= 400 && response.statusCode < 500) {
-      errorType = 'client';
+      errorMessage = 'Lỗi server (${response.statusCode})';
     }
 
     throw ApiException(
       message: errorMessage,
       statusCode: response.statusCode,
-      errorType: errorType,
+      errorType: response.statusCode >= 500 ? 'server' : 'client',
     );
   }
+
+  // ===========================================================================
+  // 1. AUTHENTICATION (Xác thực)
+  // ===========================================================================
 
   Future<Map<String, dynamic>> register(
       String email, String password, String fullName, String role) async {
     try {
-    final response = await http.post(
-        Uri.parse('$_baseUrl/auth/register'),
-      headers: {
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-        'fullName': fullName,
-        'role': role,
-      }),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/auth/register'),
+            headers: {'Content-Type': 'application/json; charset=UTF-8'},
+            body: jsonEncode({
+              'email': email,
+              'password': password,
+              'fullName': fullName,
+              'role': role,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
       _handleHttpResponse(response, 'register');
-
-    final responseBody = jsonDecode(response.body);
-      return responseBody;
+      return jsonDecode(response.body);
     } catch (e) {
-      _handleError(e, 'register'); 
+      _handleError(e, 'register');
       rethrow;
     }
   }
 
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
-    final response = await http.post(
-        Uri.parse('$_baseUrl/auth/login'),
-      headers: {
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-      }),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/auth/login'),
+            headers: {'Content-Type': 'application/json; charset=UTF-8'},
+            body: jsonEncode({
+              'email': email,
+              'password': password,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
       _handleHttpResponse(response, 'login');
-
-      final responseBody = jsonDecode(response.body);
-      return responseBody;
+      return jsonDecode(response.body);
     } catch (e) {
-      _handleError(e, 'login'); 
+      _handleError(e, 'login');
       rethrow;
     }
   }
+
+  // ===========================================================================
+  // 2. USER & PROFILE
+  // ===========================================================================
 
   Future<Map<String, dynamic>> getCurrentUser() async {
     try {
@@ -156,11 +152,9 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
 
       _handleHttpResponse(response, 'getCurrentUser');
-
-      final responseBody = jsonDecode(response.body);
-      return responseBody;
+      return jsonDecode(response.body);
     } catch (e) {
-      _handleError(e, 'getCurrentUser'); 
+      _handleError(e, 'getCurrentUser');
       rethrow;
     }
   }
@@ -177,35 +171,63 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
 
       _handleHttpResponse(response, 'updateCurrentUser');
-
-      final responseBody = jsonDecode(response.body);
-      return responseBody;
+      return jsonDecode(response.body);
     } catch (e) {
-      _handleError(e, 'updateCurrentUser'); 
+      _handleError(e, 'updateCurrentUser');
       rethrow;
     }
   }
 
-  Future<List<Map<String, dynamic>>> getTutors({
-    String? category,
-    String? search,
-    String? sortBy,
-  }) async {
-    final queryParams = <String, String>{};
-    if (category != null && category.isNotEmpty) {
-      queryParams['category'] = category;
-    }
-    if (search != null && search.isNotEmpty) {
-      queryParams['search'] = search;
-    }
-    if (sortBy != null && sortBy.isNotEmpty) {
-      queryParams['sortBy'] = sortBy;
-    }
-
-    final uri = Uri.parse('$_baseUrl/tutors')
-        .replace(queryParameters: queryParams);
-
+  // Upload Avatar dùng Base64
+  Future<String> uploadAvatar(File imageFile) async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      List<int> imageBytes = await imageFile.readAsBytes();
+      String base64Image = base64Encode(imageBytes);
+
+      final extension = imageFile.path.split('.').last.toLowerCase();
+      String mimeType = 'image/png';
+      if (extension == 'jpg' || extension == 'jpeg') mimeType = 'image/jpeg';
+
+      final base64DataUrl = 'data:$mimeType;base64,$base64Image';
+
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/users/avatar'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({'avatarBase64': base64DataUrl}),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      _handleHttpResponse(response, 'uploadAvatar');
+      return jsonDecode(response.body)['avatarUrl'] ?? '';
+    } catch (e) {
+      _handleError(e, 'uploadAvatar');
+      rethrow;
+    }
+  }
+
+  // ===========================================================================
+  // 3. TUTOR & SEARCH
+  // ===========================================================================
+
+  // ✅ FIX: Thêm hàm getTutors (thiếu)
+  Future<List<Map<String, dynamic>>> getTutors({String? category}) async {
+    try {
+      final queryParams = <String, String>{};
+      if (category != null && category.isNotEmpty) {
+        queryParams['category'] = category;
+      }
+
+      final uri =
+          Uri.parse('$_baseUrl/tutors').replace(queryParameters: queryParams);
+      debugPrint('📤 [API] getTutors - URI: $uri');
+
       final response = await http
           .get(
             uri,
@@ -213,18 +235,66 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 10));
 
-      if (response.statusCode != 200) {
-        debugPrint('⚠️ [API] getTutors - Error ${response.statusCode}, returning empty list');
-        return [];
-      }
+      _handleHttpResponse(response, 'getTutors');
+      final body = jsonDecode(response.body);
+      return (body is List) ? List<Map<String, dynamic>>.from(body) : [];
+    } catch (e) {
+      _handleError(e, 'getTutors');
+      return [];
+    }
+  }
 
-      final responseBody = jsonDecode(response.body);
-      if (responseBody is List) {
-        return List<Map<String, dynamic>>.from(responseBody);
+  Future<List<Map<String, dynamic>>> searchTutors({
+    String? search,
+    String? category,
+    double? minRating,
+    double? maxPrice,
+    String? sortBy,
+    int? page,
+    int? limit,
+  }) async {
+    final queryParams = <String, String>{};
+    if (search != null && search.isNotEmpty) queryParams['search'] = search;
+    if (category != null && category.isNotEmpty)
+      queryParams['category'] = category;
+    if (minRating != null) queryParams['minRating'] = minRating.toString();
+    if (maxPrice != null) queryParams['maxPrice'] = maxPrice.toString();
+    if (sortBy != null && sortBy.isNotEmpty) queryParams['sortBy'] = sortBy;
+    if (page != null) queryParams['page'] = page.toString();
+    if (limit != null) queryParams['limit'] = limit.toString();
+
+    // Logic Fallback (nếu API search mới chưa hoạt động thì gọi API cũ)
+    final searchUri = Uri.parse('$_baseUrl/tutors/search')
+        .replace(queryParameters: queryParams);
+    final fallbackUri = Uri.parse('$_baseUrl/tutors').replace(queryParameters: {
+      if (search != null) 'search': search,
+      if (category != null) 'category': category,
+    });
+
+    try {
+      debugPrint('📤 [API] searchTutors - Trying: $searchUri');
+      final response = await http
+          .get(searchUri, headers: await _getAuthHeaders())
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body is List) return List<Map<String, dynamic>>.from(body);
+        if (body is Map && body.containsKey('data'))
+          return List<Map<String, dynamic>>.from(body['data']);
+        return [];
+      } else if (response.statusCode == 404) {
+        debugPrint('⚠️ [API] 404, trying fallback: $fallbackUri');
+        final fbResponse =
+            await http.get(fallbackUri, headers: await _getAuthHeaders());
+        if (fbResponse.statusCode == 200) {
+          final body = jsonDecode(fbResponse.body);
+          if (body is List) return List<Map<String, dynamic>>.from(body);
+        }
       }
       return [];
     } catch (e) {
-      debugPrint('❌ [API] getTutors - Error: $e');
+      debugPrint('❌ [API] Search Error: $e');
       return [];
     }
   }
@@ -239,14 +309,84 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
 
       _handleHttpResponse(response, 'getTutorDetail');
-
-      final responseBody = jsonDecode(response.body);
-      return responseBody;
+      return jsonDecode(response.body);
     } catch (e) {
       _handleError(e, 'getTutorDetail');
       rethrow;
     }
   }
+
+  Future<Map<String, dynamic>> updateTutorProfile({
+    required String bio,
+    required int pricePerHour,
+    required List<int> subjects,
+    required List<Map<String, dynamic>> certificates,
+  }) async {
+    try {
+      final response = await http
+          .put(
+            Uri.parse('$_baseUrl/tutors/my-profile'),
+            headers: await _getAuthHeaders(),
+            body: jsonEncode({
+              'bio': bio,
+              'price_per_hour': pricePerHour,
+              'subjects': subjects,
+              'certificates': certificates,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      _handleHttpResponse(response, 'updateTutorProfile');
+      return Map<String, dynamic>.from(jsonDecode(response.body));
+    } catch (e) {
+      _handleError(e, 'updateTutorProfile');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getMyTutorProfile() async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/tutors/me/profile'),
+            headers: await _getAuthHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'getMyTutorProfile');
+      return Map<String, dynamic>.from(jsonDecode(response.body));
+    } catch (e) {
+      _handleError(e, 'getMyTutorProfile');
+      rethrow;
+    }
+  }
+
+  // ===========================================================================
+  // 4. REVIEWS (Đánh giá) - ✅ FIX: Thêm hàm getMyReviews
+  // ===========================================================================
+
+  Future<List<Map<String, dynamic>>> getMyReviews(String tutorId) async {
+    try {
+      debugPrint('📤 [API] getMyReviews - tutorId: $tutorId');
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/reviews/tutor/$tutorId'),
+            headers: await _getAuthHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'getMyReviews');
+      final body = jsonDecode(response.body);
+      return (body is List) ? List<Map<String, dynamic>>.from(body) : [];
+    } catch (e) {
+      debugPrint('⚠️ [API] getMyReviews error: $e');
+      return [];
+    }
+  }
+
+  // ===========================================================================
+  // 5. CHAT
+  // ===========================================================================
 
   Future<List<Map<String, dynamic>>> getChatRooms() async {
     try {
@@ -258,15 +398,11 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
 
       _handleHttpResponse(response, 'getChatRooms');
-
-      final responseBody = jsonDecode(response.body);
-      if (responseBody is List) {
-        return List<Map<String, dynamic>>.from(responseBody);
-      }
-      return [];
+      final body = jsonDecode(response.body);
+      return (body is List) ? List<Map<String, dynamic>>.from(body) : [];
     } catch (e) {
       _handleError(e, 'getChatRooms');
-      rethrow; 
+      rethrow;
     }
   }
 
@@ -280,88 +416,47 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
 
       _handleHttpResponse(response, 'getChatMessages');
-
-      final responseBody = jsonDecode(response.body);
-      if (responseBody is List) {
-        return List<Map<String, dynamic>>.from(responseBody);
-      }
-      return [];
+      final body = jsonDecode(response.body);
+      return (body is List) ? List<Map<String, dynamic>>.from(body) : [];
     } catch (e) {
       _handleError(e, 'getChatMessages');
       rethrow;
     }
   }
 
-  Future<Map<String, dynamic>> sendMessage(String roomId, String messageText) async {
+  Future<Map<String, dynamic>> sendMessage(
+      String roomId, String messageText) async {
     try {
       final response = await http
           .post(
             Uri.parse('$_baseUrl/chat/rooms/$roomId'),
             headers: await _getAuthHeaders(),
-            body: jsonEncode({
-              'messageText': messageText,
-            }),
+            body: jsonEncode({'messageText': messageText}),
           )
           .timeout(const Duration(seconds: 10));
 
       _handleHttpResponse(response, 'sendMessage');
-
-      final responseBody = jsonDecode(response.body);
-      return Map<String, dynamic>.from(responseBody);
+      return Map<String, dynamic>.from(jsonDecode(response.body));
     } catch (e) {
       _handleError(e, 'sendMessage');
       rethrow;
     }
   }
 
-  Future<List<Map<String, dynamic>>> getSchedules() async {
-    final uri = Uri.parse('$_baseUrl/schedule');
-
-    debugPrint('🌐 [API] getSchedules - REQUEST: ${uri.toString()}');
-    debugPrint('🌐 [API] getSchedules - Headers: ${await _getAuthHeaders()}');
-
+  Future<Map<String, dynamic>> sendConnectionRequest(
+      String tutorId, String message) async {
     try {
-      final response = await http
-          .get(
-            uri,
-            headers: await _getAuthHeaders(),
-          )
-          .timeout(const Duration(seconds: 10));
-
-      if (response.statusCode != 200) {
-        debugPrint('⚠️ [API] getSchedules - Error ${response.statusCode}, returning empty list');
-        return [];
-      }
-
-      final responseBody = jsonDecode(response.body);
-      if (responseBody is List) {
-        debugPrint('✅ [API] getSchedules - SUCCESS: count=${responseBody.length}');
-        return List<Map<String, dynamic>>.from(responseBody);
-      }
-      return [];
-    } catch (e) {
-      debugPrint('❌ [API] getSchedules - Error: $e');
-      return [];
-    }
-  }
-
-  Future<Map<String, dynamic>> sendConnectionRequest(String tutorId, String message) async {
-    try {
+      // API này giờ là Connect & Message luôn
       final response = await http
           .post(
             Uri.parse('$_baseUrl/chat/connect'),
             headers: await _getAuthHeaders(),
-            body: jsonEncode({
-              'tutorId': tutorId,
-              'messageText': message,
-            }),
+            body: jsonEncode({'tutorId': tutorId, 'messageText': message}),
           )
           .timeout(const Duration(seconds: 10));
 
       _handleHttpResponse(response, 'sendConnectionRequest');
-
-    final responseBody = jsonDecode(response.body);
-      return Map<String, dynamic>.from(responseBody);
+      return Map<String, dynamic>.from(jsonDecode(response.body));
     } catch (e) {
       _handleError(e, 'sendConnectionRequest');
       rethrow;
@@ -370,8 +465,6 @@ class ApiService {
 
   Future<Map<String, dynamic>> checkChatConnection(String targetUserId) async {
     try {
-      debugPrint('📤 [API] checkChatConnection - targetUserId: $targetUserId');
-      
       final response = await http
           .get(
             Uri.parse('$_baseUrl/chat/check/$targetUserId'),
@@ -380,73 +473,225 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
 
       _handleHttpResponse(response, 'checkChatConnection');
-
-      final responseBody = jsonDecode(response.body);
-      debugPrint('✅ [API] checkChatConnection success: $responseBody');
-      return Map<String, dynamic>.from(responseBody);
+      return Map<String, dynamic>.from(jsonDecode(response.body));
     } catch (e) {
       _handleError(e, 'checkChatConnection');
       rethrow;
     }
   }
 
-  Future<String> uploadAvatar(File imageFile) async {
+  Future<void> markChatRoomAsRead(String roomId) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      await http.put(
+        Uri.parse('$_baseUrl/chat/rooms/$roomId/read'),
+        headers: await _getAuthHeaders(),
+      );
+    } catch (_) {}
+  }
 
-      List<int> imageBytes = await imageFile.readAsBytes();
-      String base64Image = base64Encode(imageBytes);
-      
-      final extension = imageFile.path.split('.').last.toLowerCase();
-      String mimeType = 'image/png'; 
-      if (extension == 'jpg' || extension == 'jpeg') {
-        mimeType = 'image/jpeg';
-      } else if (extension == 'png') {
-        mimeType = 'image/png';
-      } else if (extension == 'gif') {
-        mimeType = 'image/gif';
-      } else if (extension == 'webp') {
-        mimeType = 'image/webp';
-      }
-      
-      final base64DataUrl = 'data:$mimeType;base64,$base64Image';
+  // ===========================================================================
+  // 6. SCHEDULE (Lịch học)
+  // ===========================================================================
 
-      final response = await http.post(
-        Uri.parse('$_baseUrl/users/avatar'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          'avatarBase64': base64DataUrl, 
-        }),
-      ).timeout(const Duration(seconds: 30)); 
+  Future<List<Map<String, dynamic>>> getSchedules() async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/schedule'),
+            headers: await _getAuthHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
-      _handleHttpResponse(response, 'uploadAvatar');
-
-      final jsonResp = jsonDecode(response.body);
-      return jsonResp['avatarUrl'] ?? '';
+      if (response.statusCode != 200) return [];
+      final body = jsonDecode(response.body);
+      return (body is List) ? List<Map<String, dynamic>>.from(body) : [];
     } catch (e) {
-      _handleError(e, 'uploadAvatar');
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> createScheduleProposal({
+    required String studentId,
+    required String subjectId,
+    required List<Map<String, String>> slots,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/schedule/proposal'),
+            headers: await _getAuthHeaders(),
+            body: jsonEncode({
+              'studentId': studentId,
+              'subjectId': subjectId,
+              'slots': slots
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      _handleHttpResponse(response, 'createScheduleProposal');
+      return Map<String, dynamic>.from(jsonDecode(response.body));
+    } catch (e) {
+      _handleError(e, 'createScheduleProposal');
       rethrow;
     }
   }
 
-  Future<List<Map<String, dynamic>>> getMyReviews(String tutorId) async {
+  Future<Map<String, dynamic>> getScheduleProposal(String groupId) async {
     try {
-      final tutorDetail = await getTutorDetail(tutorId);
-      
-      if (tutorDetail.containsKey('reviews') && tutorDetail['reviews'] is List) {
-        return List<Map<String, dynamic>>.from(tutorDetail['reviews']);
-      }
-      
-      return [];
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/schedule/proposal/$groupId'),
+            headers: await _getAuthHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'getScheduleProposal');
+      return Map<String, dynamic>.from(jsonDecode(response.body));
     } catch (e) {
-      _handleError(e, 'getMyReviews');
+      _handleError(e, 'getScheduleProposal');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> payScheduleProposal(String groupId) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/schedule/payment'),
+            headers: await _getAuthHeaders(),
+            body: jsonEncode({'groupId': groupId}),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      _handleHttpResponse(response, 'payScheduleProposal');
+      return Map<String, dynamic>.from(jsonDecode(response.body));
+    } catch (e) {
+      _handleError(e, 'payScheduleProposal');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> rejectScheduleProposal(String groupId) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/schedule/reject'),
+            headers: await _getAuthHeaders(),
+            body: jsonEncode({'groupId': groupId}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'rejectScheduleProposal');
+      return Map<String, dynamic>.from(jsonDecode(response.body));
+    } catch (e) {
+      _handleError(e, 'rejectScheduleProposal');
+      rethrow;
+    }
+  }
+
+  // ===========================================================================
+  // 7. WALLET (Ví tiền) - ĐÃ BỔ SUNG ĐẦY ĐỦ
+  // ===========================================================================
+
+  // Hàm lấy số dư (fix lỗi thiếu hàm getWalletBalance)
+  Future<Map<String, dynamic>> getWalletBalance() async {
+    try {
+      debugPrint('📤 [API] getWalletBalance');
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/wallet/balance'),
+            headers: await _getAuthHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'getWalletBalance');
+      return Map<String, dynamic>.from(jsonDecode(response.body));
+    } catch (e) {
+      _handleError(e, 'getWalletBalance');
+      rethrow;
+    }
+  }
+
+  // Hàm lấy lịch sử giao dịch (fix lỗi thiếu hàm getWalletTransactions)
+  Future<List<Map<String, dynamic>>> getWalletTransactions() async {
+    try {
+      debugPrint('📤 [API] getWalletTransactions');
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/wallet/transactions'),
+            headers: await _getAuthHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'getWalletTransactions');
+      final body = jsonDecode(response.body);
+      return (body is List) ? List<Map<String, dynamic>>.from(body) : [];
+    } catch (e) {
+      _handleError(e, 'getWalletTransactions');
       return [];
     }
   }
+
+  // Hàm nạp tiền (fix lỗi thiếu hàm mockWalletDeposit)
+  Future<void> mockWalletDeposit(double amount) async {
+    try {
+      debugPrint('📤 [API] mockWalletDeposit - amount: $amount');
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/wallet/deposit'),
+            headers: await _getAuthHeaders(),
+            body: jsonEncode({
+              'amount': amount,
+              'source': 'Momo Mock App',
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'mockWalletDeposit');
+      debugPrint('✅ [API] mockWalletDeposit success');
+    } catch (e) {
+      _handleError(e, 'mockWalletDeposit');
+      rethrow;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getLinkedAccounts() async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/wallet/accounts'),
+            headers: await _getAuthHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'getLinkedAccounts');
+      final body = jsonDecode(response.body);
+      return (body is List) ? List<Map<String, dynamic>>.from(body) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> linkAccount(Map<String, String> accountData) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/wallet/link'),
+            headers: await _getAuthHeaders(),
+            body: jsonEncode(accountData),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      _handleHttpResponse(response, 'linkAccount');
+    } catch (e) {
+      _handleError(e, 'linkAccount');
+      rethrow;
+    }
+  }
+
+  // ===========================================================================
+  // 8. SAVED TUTORS - ✅ FIX: Thêm hàm toggleSavedTutor
+  // ===========================================================================
 
   Future<List<Map<String, dynamic>>> getSavedTutors() async {
     try {
@@ -458,466 +703,90 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
 
       _handleHttpResponse(response, 'getSavedTutors');
-
-      final responseBody = jsonDecode(response.body);
-      
-      if (responseBody is List) {
-        return List<Map<String, dynamic>>.from(responseBody);
-      } else if (responseBody is Map && responseBody.containsKey('tutors')) {
-        return List<Map<String, dynamic>>.from(responseBody['tutors']);
-      }
-      
+      final body = jsonDecode(response.body);
+      if (body is List) return List<Map<String, dynamic>>.from(body);
+      // Xử lý trường hợp backend trả về object {tutors: []}
+      if (body is Map && body.containsKey('tutors'))
+        return List<Map<String, dynamic>>.from(body['tutors']);
       return [];
     } catch (e) {
-      debugPrint('⚠️ [API] Error loading saved tutors: $e');
       return [];
     }
   }
 
-  Future<Map<String, dynamic>> addSavedTutor(String tutorId) async {
+  Future<void> addSavedTutor(String tutorId) async {
     try {
-      if (tutorId.isEmpty || tutorId.trim().isEmpty) {
-        throw ApiException(
-          message: 'ID gia sư không hợp lệ',
-          statusCode: 400,
-          errorType: 'client',
-        );
-      }
-
-      final cleanTutorId = tutorId.trim();
-      debugPrint('📤 [API] addSavedTutor - tutorId: $cleanTutorId');
-
-      final requestBody = {
-        'tutorId': cleanTutorId, 
-      };
-
-      debugPrint('📤 [API] Request body: ${jsonEncode(requestBody)}');
-
-      final response = await http
+      await http
           .post(
             Uri.parse('$_baseUrl/users/saved-tutors'),
             headers: await _getAuthHeaders(),
-            body: jsonEncode(requestBody),
+            body: jsonEncode({'tutorId': tutorId}),
           )
           .timeout(const Duration(seconds: 10));
-
-      _handleHttpResponse(response, 'addSavedTutor');
-
-      final responseBody = jsonDecode(response.body);
-      debugPrint('✅ [API] addSavedTutor success: $responseBody');
-      return Map<String, dynamic>.from(responseBody);
     } catch (e) {
-      debugPrint('❌ [API] addSavedTutor error: $e');
       _handleError(e, 'addSavedTutor');
       rethrow;
     }
   }
 
-  Future<Map<String, dynamic>> removeSavedTutor(String tutorId) async {
+  Future<void> removeSavedTutor(String tutorId) async {
     try {
-      if (tutorId.isEmpty || tutorId.trim().isEmpty) {
-        throw ApiException(
-          message: 'ID gia sư không hợp lệ',
-          statusCode: 400,
-          errorType: 'client',
-        );
-      }
-
-      final cleanTutorId = tutorId.trim();
-      debugPrint('📤 [API] removeSavedTutor - tutorId: $cleanTutorId');
-
-      final response = await http
+      await http
           .delete(
-            Uri.parse('$_baseUrl/users/saved-tutors/$cleanTutorId'), 
+            Uri.parse('$_baseUrl/users/saved-tutors/$tutorId'),
             headers: await _getAuthHeaders(),
           )
           .timeout(const Duration(seconds: 10));
-
-      _handleHttpResponse(response, 'removeSavedTutor');
-
-      final responseBody = jsonDecode(response.body);
-      debugPrint('✅ [API] removeSavedTutor success: $responseBody');
-      return Map<String, dynamic>.from(responseBody);
     } catch (e) {
-      debugPrint('❌ [API] removeSavedTutor error: $e');
       _handleError(e, 'removeSavedTutor');
       rethrow;
     }
   }
 
-  Future<Map<String, dynamic>> toggleSavedTutor(String tutorId, {required bool isSaved}) async {
-    if (isSaved) {
-      return await removeSavedTutor(tutorId);
-    } else {
-      return await addSavedTutor(tutorId);
+  // ✅ FIX: Thêm hàm toggleSavedTutor (thiếu)
+  Future<void> toggleSavedTutor(String tutorId, {required bool isSaved}) async {
+    try {
+      if (isSaved) {
+        await removeSavedTutor(tutorId);
+      } else {
+        await addSavedTutor(tutorId);
+      }
+    } catch (e) {
+      _handleError(e, 'toggleSavedTutor');
+      rethrow;
     }
   }
 
   Future<bool> isTutorSaved(String tutorId) async {
     try {
-      final savedTutors = await getSavedTutors();
-      return savedTutors.any((tutor) => 
-        tutor['user_id']?.toString() == tutorId || 
-        tutor['tutor_id']?.toString() == tutorId ||
-        tutor['id']?.toString() == tutorId
-      );
+      final list = await getSavedTutors();
+      return list.any((t) =>
+          t['user_id']?.toString() == tutorId ||
+          t['tutor_id']?.toString() == tutorId ||
+          t['id']?.toString() == tutorId);
     } catch (e) {
-      debugPrint('⚠️ [API] Error checking saved tutor: $e');
       return false;
     }
   }
 
-  Future<void> markChatRoomAsRead(String roomId) async {
-    try {
-      if (roomId.isEmpty || roomId.trim().isEmpty) {
-        debugPrint('⚠️ [API] markChatRoomAsRead - Invalid roomId');
-        return;
-      }
-
-      final cleanRoomId = roomId.trim();
-      debugPrint('📤 [API] markChatRoomAsRead - roomId: $cleanRoomId');
-
-      final response = await http
-          .put(
-            Uri.parse('$_baseUrl/chat/rooms/$cleanRoomId/read'),
-            headers: await _getAuthHeaders(),
-          )
-          .timeout(const Duration(seconds: 5)); 
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        debugPrint('✅ [API] markChatRoomAsRead success');
-      } else {
-        debugPrint('⚠️ [API] markChatRoomAsRead - Status: ${response.statusCode}');
-      }
-    } catch (e) {
-      debugPrint('⚠️ [API] markChatRoomAsRead error (ignored): $e');
-    }
-  }
-
-  Future<Map<String, dynamic>> updateTutorProfile({
-    required String bio,
-    required int pricePerHour,
-    required List<int> subjects,
-    required List<Map<String, dynamic>> certificates, 
-  }) async {
-    try {
-      debugPrint('📤 [API] updateTutorProfile - bio: ${bio.substring(0, bio.length > 50 ? 50 : bio.length)}..., price: $pricePerHour, subjects: $subjects, certificates: ${certificates.length}');
-
-      final body = {
-        'bio': bio,
-        'price_per_hour': pricePerHour,
-        'subjects': subjects,
-        'certificates': certificates,
-      };
-
-      final response = await http
-          .put(
-            Uri.parse('$_baseUrl/tutors/my-profile'),
-            headers: await _getAuthHeaders(),
-            body: jsonEncode(body),
-          )
-          .timeout(const Duration(seconds: 30)); 
-
-      _handleHttpResponse(response, 'updateTutorProfile');
-
-      final responseBody = jsonDecode(response.body);
-      debugPrint('✅ [API] updateTutorProfile success');
-      return Map<String, dynamic>.from(responseBody);
-    } catch (e) {
-      _handleError(e, 'updateTutorProfile');
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> getMyTutorProfile() async {
-    try {
-      debugPrint('📤 [API] getMyTutorProfile');
-      
-      final response = await http
-          .get(
-            Uri.parse('$_baseUrl/tutors/me/profile'),
-            headers: await _getAuthHeaders(),
-          )
-          .timeout(const Duration(seconds: 10));
-
-      _handleHttpResponse(response, 'getMyTutorProfile');
-
-      final responseBody = jsonDecode(response.body);
-      debugPrint('✅ [API] getMyTutorProfile success');
-      return Map<String, dynamic>.from(responseBody);
-    } catch (e) {
-      _handleError(e, 'getMyTutorProfile');
-      rethrow;
-    }
-  }
+  // ===========================================================================
+  // 9. SUBJECTS
+  // ===========================================================================
 
   Future<List<Map<String, dynamic>>> getSubjects() async {
     try {
-      debugPrint('📤 [API] getSubjects');
-      
       final response = await http
           .get(
             Uri.parse('$_baseUrl/subjects'),
-            headers: await _getAuthHeaders(), 
+            headers: await _getAuthHeaders(),
           )
           .timeout(const Duration(seconds: 10));
 
       _handleHttpResponse(response, 'getSubjects');
-
-      final responseBody = jsonDecode(response.body);
-      if (responseBody is List) {
-        debugPrint('✅ [API] getSubjects success: count=${responseBody.length}');
-        return List<Map<String, dynamic>>.from(responseBody);
-      }
-      return [];
-    } catch (e) {
-      _handleError(e, 'getSubjects');
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> createScheduleProposal({
-    required String studentId,
-    required String subjectId,
-    required List<Map<String, String>> slots, 
-  }) async {
-    try {
-      debugPrint('📤 [API] createScheduleProposal - studentId: $studentId, subjectId: $subjectId');
-      
-      final response = await http
-          .post(
-            Uri.parse('$_baseUrl/schedule/proposal'),
-            headers: await _getAuthHeaders(),
-            body: jsonEncode({
-              'studentId': studentId,
-              'subjectId': subjectId,
-              'slots': slots,
-            }),
-          )
-          .timeout(const Duration(seconds: 30));
-
-      _handleHttpResponse(response, 'createScheduleProposal');
-
-      final responseBody = jsonDecode(response.body);
-      debugPrint('✅ [API] createScheduleProposal success: groupId=${responseBody['groupId']}');
-      return Map<String, dynamic>.from(responseBody);
-    } catch (e) {
-      _handleError(e, 'createScheduleProposal');
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> rejectScheduleProposal(String groupId) async {
-    try {
-      debugPrint('📤 [API] rejectScheduleProposal - groupId: $groupId');
-
-      final response = await http
-          .post(
-            Uri.parse('$_baseUrl/schedule/reject'),
-            headers: await _getAuthHeaders(),
-            body: jsonEncode({'groupId': groupId}),
-          )
-          .timeout(const Duration(seconds: 10));
-
-      _handleHttpResponse(response, 'rejectScheduleProposal');
-
-      final responseBody = jsonDecode(response.body);
-      debugPrint('✅ [API] rejectScheduleProposal success');
-      return Map<String, dynamic>.from(responseBody);
-    } catch (e) {
-      _handleError(e, 'rejectScheduleProposal');
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> getScheduleProposal(String groupId) async {
-    try {
-      debugPrint('📤 [API] getScheduleProposal - groupId: $groupId');
-      
-      final response = await http
-          .get(
-            Uri.parse('$_baseUrl/schedule/proposal/$groupId'),
-            headers: await _getAuthHeaders(),
-          )
-          .timeout(const Duration(seconds: 10));
-
-      _handleHttpResponse(response, 'getScheduleProposal');
-
-      final responseBody = jsonDecode(response.body);
-      debugPrint('✅ [API] getScheduleProposal success');
-      return Map<String, dynamic>.from(responseBody);
-    } catch (e) {
-      _handleError(e, 'getScheduleProposal');
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> payScheduleProposal(String groupId) async {
-    try {
-      debugPrint('📤 [API] payScheduleProposal - groupId: $groupId');
-      
-      final response = await http
-          .post(
-            Uri.parse('$_baseUrl/schedule/payment'),
-            headers: await _getAuthHeaders(),
-            body: jsonEncode({
-              'groupId': groupId,
-            }),
-          )
-          .timeout(const Duration(seconds: 30));
-
-      _handleHttpResponse(response, 'payScheduleProposal');
-
-      final responseBody = jsonDecode(response.body);
-      debugPrint('✅ [API] payScheduleProposal success: totalAmount=${responseBody['totalAmount']}');
-      return Map<String, dynamic>.from(responseBody);
-    } catch (e) {
-      _handleError(e, 'payScheduleProposal');
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> updateScheduleStatus({
-    required String scheduleId,
-    required String status, 
-  }) async {
-    try {
-      debugPrint('📤 [API] updateScheduleStatus - scheduleId: $scheduleId, status: $status');
-      
-      final response = await http
-          .put(
-            Uri.parse('$_baseUrl/schedule/$scheduleId'),
-            headers: await _getAuthHeaders(),
-            body: jsonEncode({
-              'status': status,
-            }),
-          )
-          .timeout(const Duration(seconds: 10));
-
-      _handleHttpResponse(response, 'updateScheduleStatus');
-
-      final responseBody = jsonDecode(response.body);
-      debugPrint('✅ [API] updateScheduleStatus success');
-      return Map<String, dynamic>.from(responseBody);
-    } catch (e) {
-      _handleError(e, 'updateScheduleStatus');
-      rethrow;
-    }
-  }
-
-  Future<double> getWalletBalance() async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse('$_baseUrl/wallet/balance'),
-            headers: await _getAuthHeaders(),
-          )
-          .timeout(const Duration(seconds: 10));
-
-      _handleHttpResponse(response, 'getWalletBalance');
       final body = jsonDecode(response.body);
-      return double.tryParse(body['balance'].toString()) ?? 0;
+      return (body is List) ? List<Map<String, dynamic>>.from(body) : [];
     } catch (e) {
-      _handleError(e, 'getWalletBalance');
-      rethrow;
-    }
-  }
-
-  Future<List<dynamic>> getWalletTransactions() async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse('$_baseUrl/wallet/transactions'),
-            headers: await _getAuthHeaders(),
-          )
-          .timeout(const Duration(seconds: 10));
-
-      _handleHttpResponse(response, 'getWalletTransactions');
-      final body = jsonDecode(response.body);
-      if (body is List) {
-        return body;
-      }
       return [];
-    } catch (e) {
-      _handleError(e, 'getWalletTransactions');
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> mockWalletDeposit(double amount) async {
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$_baseUrl/wallet/mock-deposit'),
-            headers: await _getAuthHeaders(),
-            body: jsonEncode({'amount': amount}),
-          )
-          .timeout(const Duration(seconds: 10));
-
-      _handleHttpResponse(response, 'mockWalletDeposit');
-      return Map<String, dynamic>.from(jsonDecode(response.body));
-    } catch (e) {
-      _handleError(e, 'mockWalletDeposit');
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> getAdminSummary() async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse('$_baseUrl/admin/summary'),
-            headers: await _getAuthHeaders(),
-          )
-          .timeout(const Duration(seconds: 10));
-
-      _handleHttpResponse(response, 'getAdminSummary');
-      return Map<String, dynamic>.from(jsonDecode(response.body));
-    } catch (e) {
-      _handleError(e, 'getAdminSummary');
-      rethrow;
-    }
-  }
-
-  Future<List<dynamic>> getAdminTutors({String status = 'pending'}) async {
-    try {
-      final uri = Uri.parse('$_baseUrl/admin/tutors')
-          .replace(queryParameters: {'status': status});
-
-      final response = await http
-          .get(
-            uri,
-            headers: await _getAuthHeaders(),
-          )
-          .timeout(const Duration(seconds: 10));
-
-      _handleHttpResponse(response, 'getAdminTutors');
-      final body = jsonDecode(response.body);
-      if (body is Map && body['tutors'] is List) {
-        return body['tutors'];
-      }
-      return [];
-    } catch (e) {
-      _handleError(e, 'getAdminTutors');
-      rethrow;
-    }
-  }
-
-  Future<void> updateTutorApproval(String tutorId,
-      {required bool isApproved}) async {
-    try {
-      final response = await http
-          .patch(
-            Uri.parse('$_baseUrl/admin/tutors/$tutorId'),
-            headers: await _getAuthHeaders(),
-            body: jsonEncode({'action': isApproved ? 'approve' : 'reject'}),
-          )
-          .timeout(const Duration(seconds: 10));
-
-      _handleHttpResponse(response, 'updateTutorApproval');
-    } catch (e) {
-      _handleError(e, 'updateTutorApproval');
-      rethrow;
     }
   }
 }

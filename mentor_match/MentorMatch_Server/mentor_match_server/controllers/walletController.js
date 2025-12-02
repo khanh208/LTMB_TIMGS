@@ -22,17 +22,6 @@ const deposit = async (req, res) => {
   }
 };
 
-const mockDeposit = async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const { amount } = req.body;
-    const result = await walletService.mockDeposit(userId, amount);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
-
 const getBalance = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -52,6 +41,7 @@ const getTransactions = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 const getLinkedAccounts = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -65,7 +55,6 @@ const getLinkedAccounts = async (req, res) => {
 module.exports = {
   linkAccount,
   deposit,
-  mockDeposit,
   getBalance,
   getTransactions,
   getLinkedAccounts,

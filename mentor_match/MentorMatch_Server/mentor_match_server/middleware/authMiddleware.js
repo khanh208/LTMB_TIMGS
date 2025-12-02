@@ -35,4 +35,12 @@ const isStudent = (req, res, next) => {
   }
 };
 
-module.exports = { protect, isTutor, isStudent };
+const isAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'admin') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Yêu cầu quyền Quản trị viên.' });
+  }
+};
+
+module.exports = { protect, isTutor, isStudent, isAdmin };

@@ -23,4 +23,8 @@ class NavigationProvider extends ChangeNotifier {
     _targetDate = null;
     notifyListeners();
   }
+  void clearTargetTab() {
+  _targetTabIndex = null;
+  notifyListeners();
+}
 }

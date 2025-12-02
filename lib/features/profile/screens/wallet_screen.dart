@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -41,8 +40,13 @@ class _WalletScreenState extends State<WalletScreen> {
         _apiService.getWalletTransactions(),
       ]);
 
+      // ✅ FIX: Parse balance correctly from Map response
+      final balanceData = results[0] as Map<String, dynamic>;
+      final balanceValue = balanceData['balance'];
+      
       setState(() {
-        _balance = results[0] as double;
+        // Parse balance safely - handle both String and num types
+        _balance = double.tryParse(balanceValue?.toString() ?? '0') ?? 0.0;
         _transactions = results[1] as List<dynamic>;
         _isLoading = false;
       });
